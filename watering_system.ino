@@ -1,14 +1,22 @@
-// Watering system by Michael Bernhard
+// Watering system by Michael Bernhard; 2020.04.23
 
+
+//******************************************************************************************
 //******************************************************************************************
 //  define constants
 //******************************************************************************************
+//******************************************************************************************
+
+// number of plants (pumps, sensors and relais)
 const int g_NumPlants_ic = 4;
 
+// pin connection of sensor and pump (relais module) to arduino board
 const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A3};
 const int g_PumpPin_pic[g_NumPlants_ic] = {2, 3, 4, 5};
 
+// store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard"};
+const char g_PgmHelp_pc[] PROGMEM = {"h: help; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode; c: cancel/continue"};
 const char g_PgmInfo_pc[] PROGMEM = {"Info"};
 const char g_PgmSensor_pc[] PROGMEM = {"Sensor "};
 const char g_PgmContinue_pc[] PROGMEM = {"Continue... "};
@@ -16,8 +24,11 @@ const char g_PgmChannel_pc[] PROGMEM = {"Channel: "};
 const char g_PgmCommand_pc[] PROGMEM = {"Command: "};
 const char g_PgmValue_pc[] PROGMEM = {"Value: "};
 const char g_PgmManual_pc[] PROGMEM = {"[0] pump off; [1] pump on; [c] cancel"};
+const char g_PgmReset_pc[] PROGMEM = {"Reset"};
+const char g_PgmSoftReset_pc[] PROGMEM = {"Soft reset"};
+const char g_PgmDebugMode_pc[] PROGMEM = {"Debug mode "};
 
-const char g_PgmC1_pc[] PROGMEM = {"current time                 : "};
+const char g_PgmC1_pc[] PROGMEM = {"current time                   : "};
 const char g_PgmT1_pc[] PROGMEM = {"[T1] timeout pump on           : "};
 const char g_PgmT2_pc[] PROGMEM = {"[T2] time pump on max          : "};
 const char g_PgmT3_pc[] PROGMEM = {"[T3] time wait                 : "};
@@ -30,11 +41,6 @@ const char g_PgmM1_pc[] PROGMEM = {"mode pump ready"};
 const char g_PgmM2_pc[] PROGMEM = {"mode pump on"};
 const char g_PgmM3_pc[] PROGMEM = {"mode pump off"};
 const char g_PgmM4_pc[] PROGMEM = {"mode pump error"};
-const char g_PgmHelp_pc[] PROGMEM = {"h: help; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode; c: cancel/continue"};
-
-const char g_PgmReset_pc[] PROGMEM = {"Reset"};
-const char g_PgmSoftReset_pc[] PROGMEM = {"Soft reset"};
-const char g_PgmDebugMode_pc[] PROGMEM = {"Debug mode "};
 
 const char g_PgmErrR1_pc[] PROGMEM = {": Err: Switch off pump due of timeout. Check sensor. R1"};
 const char g_PgmErrR6_pc[] PROGMEM = {": Err: Force pump due of timeout T4. Check sensor. R6"};
@@ -44,9 +50,14 @@ const char g_PgmDebugR3_pc[] PROGMEM = {": pump off (threshold) R3"};
 const char g_PgmDebugR4_pc[] PROGMEM = {": pump off (time max on) R4"};
 const char g_PgmDebugR5_pc[] PROGMEM = {": ready R5"};
 
+
+
+//******************************************************************************************
 //******************************************************************************************
 //  define types, enum and structs
 //******************************************************************************************
+//******************************************************************************************
+
 enum ModeType {
   modePumpReady = 1,
   modePumpOn = 2,
@@ -55,24 +66,28 @@ enum ModeType {
 };
 
 struct typedefPlant {
-  int Sensor_i; // Sensor value
-  ModeType Mode_enm; // current mode
+  int Sensor_i;                  // Sensor value
+  ModeType Mode_enm;             // current mode
   
-  int ThresholdLow_i; // if sensor value is below this threshold, pump stopps
-  int ThresholdHigh_i; // if sensor value is higher than this threshold, pump starts
+  int ThresholdLow_i;            // if sensor value is below this threshold, pump stopps
+  int ThresholdHigh_i;           // if sensor value is higher than this threshold, pump starts
   int ThresholdExpectedChange_i; // sensor value has to be lower than this value, otherwise error state
   
-  long CurrTime_l; // current time in seconds
+  long CurrTime_l;               // current time in seconds
   
-  long TimeOutPumpOn_l; // timout when pump is on: after this time, a value change is expected
-  long TimePumpOnMax_l; // maximum time for pump is on. After this time, pump is switched off
-  long TimeWait_l; // wait this time after last pump on before start new pump on: stay at least TimeWait in pump off mode
-  long TimeOutPumpOff_l; // when pump is off: start pump independent of sensor value after this timout
-  long TimeOutErrorState_l; // release error state after this timeout
+  long TimeOutPumpOn_l;          // T1: timout when pump is on: after this time, a value change is expected
+  long TimePumpOnMax_l;          // T2: maximum time for pump is on. After this time, pump is switched off
+  long TimeWait_l;               // T3: wait this time after last pump on before start new pump on: stay at least TimeWait in pump off mode
+  long TimeOutPumpOff_l;         // T4: when pump is off: start pump independent of sensor value after this timout
+  long TimeOutErrorState_l;      // T5: release error state after this timeout
 };
 
+
+
+//******************************************************************************************
 //******************************************************************************************
 //  global variable
+//******************************************************************************************
 //******************************************************************************************
 typedefPlant g_Plants_pst[g_NumPlants_ic];
 int g_Timer_i = 0;
@@ -81,6 +96,12 @@ bool g_PrintInfo_bl = false;
 bool g_DebugMode_bl = false;
 
 
+
+//******************************************************************************************
+//******************************************************************************************
+// functions
+//******************************************************************************************
+//******************************************************************************************
 
 //******************************************************************************************
 //  setup
@@ -93,22 +114,23 @@ void setup()
     pinMode(g_PumpPin_pic[i], OUTPUT);
   }
   
-   for (int k = 0; k < 5; ++k)
+  for (int k = 0; k < 5; ++k)
   {
     digitalWrite(LED_BUILTIN, HIGH);
     delay(50);
     digitalWrite(LED_BUILTIN, LOW);
     delay(30);
   }
+  
   Serial.begin(9600);
   serialPrintlnPgm(g_PgmWatering_pc);
   reset();
 
-  // timer
+  // timer interrupt settings (1 Hz)
   TCCR1A = 0;
   TCCR1B = 0;
   TCNT1 = 0;
-  OCR1A = 15624; // (16*10^6) / (1*1024) - 1 (must be < 65536)
+  OCR1A = 15624; // (16*10^6) / (1*1024) - 1
   TCCR1B |=(1<<WGM12);
   TCCR1B |= (1 << CS12) | (1 << CS10);
   TIMSK1 |=(1 << OCIE1A);
@@ -161,7 +183,6 @@ void loop()
 
   // pump control
   pumpControl();
-
 }
 
 
@@ -172,12 +193,13 @@ void softReset()
 {
   for (int i = 0; i < g_NumPlants_ic; ++i) {
     g_Plants_pst[i].Sensor_i = 0;
-    g_Plants_pst[i].Mode_enm =modePumpReady;
+    g_Plants_pst[i].Mode_enm = modePumpReady;
     g_Plants_pst[i].CurrTime_l = 0;
     digitalWrite(g_PumpPin_pic[i], HIGH); // pump off
   }
   g_Timer_i = 0;
 }
+
 
 //******************************************************************************************
 //  reset
@@ -201,8 +223,8 @@ void reset()
     g_Plants_pst[i].TimeOutPumpOn_l = 5; 
     g_Plants_pst[i].TimePumpOnMax_l = 20;
     g_Plants_pst[i].TimeWait_l = 100;
-    g_Plants_pst[i].TimeOutPumpOff_l = 86400;
-    g_Plants_pst[i].TimeOutErrorState_l = 86400;
+    g_Plants_pst[i].TimeOutPumpOff_l = 3*60*60*24; // 3 days
+    g_Plants_pst[i].TimeOutErrorState_l = 60*60*24; // 24 hours
   }
   g_DebugMode_bl = false;
   g_PrintInfo_bl = false;
@@ -413,6 +435,7 @@ void manualMode()
   serialPrintlnPgm(g_PgmContinue_pc);
   softReset();
 }
+
 
 //******************************************************************************************
 //  print short info
