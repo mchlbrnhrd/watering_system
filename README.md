@@ -11,6 +11,7 @@ This software supports
   - check sensor values
   - start and stop pump manualy
   - change values of variables during runtime (thresholds, time durations)
+  - activate debug mode: print sensor values continously and internal states of software.
   
 # hardware setup
 Connect digital outputs of arduino (microcontroller) with relais module inputs. Connect analog inputs of arduino with humidity sensors. Connect pumps with relais module switches and power supply.
