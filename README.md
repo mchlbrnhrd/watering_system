@@ -1,7 +1,7 @@
 # watering system
-Water plants automatically on vacation.
+Automatic irrigation of plants on vacation.
 
-You need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit". 
+For this self watering system you need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit".
 
 This software supports
 * start pump when moisture of soil is too low
@@ -12,10 +12,11 @@ This software supports
   - start and stop pump manualy
   - change values of variables during runtime (thresholds, time durations)
   - activate debug mode: print sensor values continously and internal states of software.
-  
+  - get log data (sensor data will be recorded every 12 hours)
+
 # hardware setup
 Connect digital outputs of arduino (microcontroller) with relais module inputs. Connect analog inputs of arduino with capacitive soil moisture sensors. Connect pumps with relais module switches and power supply.
-  
+
 # requirements
 This software supports following requirements:
 * R1: If pump is activated (on) then after time T1 there shall be a moisture change (below threshold S3). Otherwise go to error state.
@@ -32,5 +33,3 @@ States/Modes:
 * M2: pump is on
 * M3: pump is off
 * M4: pump is in error state
-
-

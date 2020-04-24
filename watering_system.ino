@@ -14,9 +14,12 @@ const int g_NumPlants_ic = 4;
 const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A3};
 const int g_PumpPin_pic[g_NumPlants_ic] = {2, 3, 4, 5};
 
+const int g_LogSize_ic = 32; // number of log entries
+const long g_LogInterval_lc = 60L*60L*12L; // log interval 12 h
+
 // store text in PROGMEM
-const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard"};
-const char g_PgmHelp_pc[] PROGMEM = {"h: help; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode; c: cancel/continue"};
+const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
+const char g_PgmHelp_pc[] PROGMEM = {"h: help; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode; l: read log; c: cancel/continue"};
 const char g_PgmInfo_pc[] PROGMEM = {"Info"};
 const char g_PgmSensor_pc[] PROGMEM = {"Sensor "};
 const char g_PgmContinue_pc[] PROGMEM = {"Continue... "};
@@ -27,6 +30,8 @@ const char g_PgmManual_pc[] PROGMEM = {"[0] pump off; [1] pump on; [c] cancel"};
 const char g_PgmReset_pc[] PROGMEM = {"Reset"};
 const char g_PgmSoftReset_pc[] PROGMEM = {"Soft reset"};
 const char g_PgmDebugMode_pc[] PROGMEM = {"Debug mode "};
+const char g_PgmLogStart_pc[] PROGMEM = {"--- log start --- <mode, sensor value, time stamp>"};
+const char g_PgmLogEnd_pc[] PROGMEM = {"--- log end ---"};
 
 const char g_PgmC1_pc[] PROGMEM = {"current time                   : "};
 const char g_PgmT1_pc[] PROGMEM = {"[T1] timeout pump on           : "};
@@ -38,8 +43,8 @@ const char g_PgmS1_pc[] PROGMEM = {"[S1] threshold low             : "};
 const char g_PgmS2_pc[] PROGMEM = {"[S2] threshold high            : "};
 const char g_PgmS3_pc[] PROGMEM = {"[S3] threshold expected change : "};
 const char g_PgmM1_pc[] PROGMEM = {"mode pump ready"};
-const char g_PgmM2_pc[] PROGMEM = {"mode pump on"};
-const char g_PgmM3_pc[] PROGMEM = {"mode pump off"};
+const char g_PgmM2_pc[] PROGMEM = {"mode pump on   "};
+const char g_PgmM3_pc[] PROGMEM = {"mode pump off  "};
 const char g_PgmM4_pc[] PROGMEM = {"mode pump error"};
 
 const char g_PgmErrR1_pc[] PROGMEM = {": Err: Switch off pump due of timeout. Check sensor. R1"};
@@ -82,7 +87,16 @@ struct typedefPlant {
   long TimeOutErrorState_l;      // T5: release error state after this timeout
 };
 
+struct typedefLogEntry {
+  ModeType Mode_enm;
+  int Sensor_i;
+  long CurrTime_l;
+};
 
+struct typedefLog {
+  typedefLogEntry Entry_pst[g_LogSize_ic];
+  int Index_i;
+};
 
 //******************************************************************************************
 //******************************************************************************************
@@ -90,10 +104,14 @@ struct typedefPlant {
 //******************************************************************************************
 //******************************************************************************************
 typedefPlant g_Plants_pst[g_NumPlants_ic];
+typedefLog g_Log_pst[g_NumPlants_ic];
+
 int g_Timer_i = 0;
 bool g_HeartBeat_bl = false;
 bool g_PrintInfo_bl = false;
 bool g_DebugMode_bl = false;
+long g_LogTimer_l = 0;
+bool g_LogDone_bl = false;
 
 
 
@@ -148,6 +166,19 @@ void loop()
   // read sensor values
   readSensor();
 
+  // pump control
+  pumpControl();
+
+  // create log entry
+  if ((0 == g_LogTimer_l) && !g_LogDone_bl) {
+    for (int i = 0; i < g_NumPlants_ic; ++i) {
+      addLogEntry(i);
+    }
+    g_LogDone_bl = true;
+  } else if (0 != g_LogTimer_l) {
+    g_LogDone_bl = false;
+  }
+
   // check if key is pressed
   while (Serial.available() > 0) {
     String Key_s = Serial.readString();
@@ -170,6 +201,8 @@ void loop()
       Serial.println(g_DebugMode_bl ? "on" : "off");
     } else if (Key_s.equals("m") || Key_s.equals("M")) {
       manualMode();
+    } else if (Key_s.equals("l") || Key_s.equals("L")) {
+      printLog();
     }
   }
 
@@ -181,8 +214,7 @@ void loop()
     }
   }
 
-  // pump control
-  pumpControl();
+ 
 }
 
 
@@ -195,7 +227,7 @@ void softReset()
     g_Plants_pst[i].Sensor_i = 0;
     g_Plants_pst[i].Mode_enm = modePumpReady;
     g_Plants_pst[i].CurrTime_l = 0;
-    digitalWrite(g_PumpPin_pic[i], HIGH); // pump off
+    pumpOff(i); // pump off
   }
   g_Timer_i = 0;
 }
@@ -223,11 +255,20 @@ void reset()
     g_Plants_pst[i].TimeOutPumpOn_l = 5; 
     g_Plants_pst[i].TimePumpOnMax_l = 20;
     g_Plants_pst[i].TimeWait_l = 100;
-    g_Plants_pst[i].TimeOutPumpOff_l = 3*60*60*24; // 3 days
-    g_Plants_pst[i].TimeOutErrorState_l = 60*60*24; // 24 hours
+    g_Plants_pst[i].TimeOutPumpOff_l = 3L*60L*60L*24L; // 3 days
+    g_Plants_pst[i].TimeOutErrorState_l = 60L*60L*24L; // 24 hours
   }
   g_DebugMode_bl = false;
   g_PrintInfo_bl = false;
+  g_LogTimer_l = 0;
+  g_LogDone_bl = false;
+  for (int i = 0; i < g_NumPlants_ic; ++i) {
+    for (int k = 0; k < g_LogSize_ic; ++k) {
+       g_Log_pst[i].Entry_pst[k].Mode_enm = modePumpReady;
+       g_Log_pst[i].Entry_pst[k].Sensor_i = 0;
+       g_Log_pst[i].Entry_pst[k].CurrTime_l = 0;
+    }
+  }
   softReset();
 }
 
@@ -265,7 +306,7 @@ void pumpControl()
          serialPrintlnPgm(g_PgmErrR6_pc);
       }
       if (modePumpOn == g_Plants_pst[i].Mode_enm) {
-        digitalWrite(g_PumpPin_pic[i], LOW);
+        pumpOn(i);
         TimerReset_bl = true;
       }
 
@@ -274,15 +315,15 @@ void pumpControl()
       // ************* mode pump on **************
       if (g_Plants_pst[i].CurrTime_l > g_Plants_pst[i].TimeOutPumpOn_l) {
         if (g_Plants_pst[i].Sensor_i > g_Plants_pst[i].ThresholdExpectedChange_i) {
-          digitalWrite(g_PumpPin_pic[i], HIGH);
           g_Plants_pst[i].Mode_enm = modePumpError;
+          pumpOff(i);
           Serial.print(i);
           serialPrintlnPgm(g_PgmErrR1_pc);
           TimerReset_bl = true;
         }
         if (g_Plants_pst[i].Sensor_i < g_Plants_pst[i].ThresholdLow_i) {
           g_Plants_pst[i].Mode_enm = modePumpOff;
-          digitalWrite(g_PumpPin_pic[i], HIGH);
+          pumpOff(i);
           TimerReset_bl = true;
           if (g_DebugMode_bl) {
             Serial.print(i);
@@ -290,7 +331,7 @@ void pumpControl()
           }
         } else if (g_Plants_pst[i].CurrTime_l  > g_Plants_pst[i].TimePumpOnMax_l) {
           g_Plants_pst[i].Mode_enm = modePumpOff;
-          digitalWrite(g_PumpPin_pic[i], HIGH);
+          pumpOff(i);
           TimerReset_bl = true;
           if (g_DebugMode_bl) {
             Serial.print(i);
@@ -395,7 +436,6 @@ void terminal()
 //******************************************************************************************
 void manualMode()
 {
-  printInfo();
   bool Finished_bl=false;
  
   serialPrintPgm(g_PgmChannel_pc);
@@ -419,10 +459,18 @@ void manualMode()
         Finished_bl = true;
       } else if (Key_s.equals("1") || Key_s.equals("1")) {
         Serial.println("on");
-        digitalWrite(g_PumpPin_pic[Channel_i], LOW); // pump on
+        // save current mode, change to pumpOn for log and recover mode
+        ModeType ModeSave_enm = g_Plants_pst[Channel_i].Mode_enm;
+        g_Plants_pst[Channel_i].Mode_enm = modePumpOn;
+        pumpOn(Channel_i); // pump on
+        g_Plants_pst[Channel_i].Mode_enm = ModeSave_enm;
       } else {
         Serial.println("off");
-        digitalWrite(g_PumpPin_pic[Channel_i], HIGH); // pump off
+        // save current mode, change to pumpOff for log and recover mode
+        ModeType ModeSave_enm = g_Plants_pst[Channel_i].Mode_enm;
+        g_Plants_pst[Channel_i].Mode_enm = modePumpOff;
+        pumpOff(Channel_i); // pump off
+        g_Plants_pst[Channel_i].Mode_enm = ModeSave_enm;
       }
     }
     if (g_DebugMode_bl) {
@@ -456,24 +504,24 @@ void printShortInfo()
 //******************************************************************************************
 void printChannel(int Channel_i)
 {
-  if (Channel_i  < g_NumPlants_ic) {
+  if ((0 <= Channel_i) && (g_NumPlants_ic > Channel_i)) {
     serialPrintPgm(g_PgmSensor_pc);
     Serial.print(Channel_i);
     Serial.print(": ");
     Serial.println(g_Plants_pst[Channel_i].Sensor_i);
     switch(g_Plants_pst[Channel_i].Mode_enm) {
       case modePumpReady:
-      serialPrintlnPgm(g_PgmM1_pc);
-      break;
+        serialPrintlnPgm(g_PgmM1_pc);
+        break;
       case modePumpOn:
-      serialPrintlnPgm(g_PgmM2_pc);
-      break;
+        serialPrintlnPgm(g_PgmM2_pc);
+        break;
       case modePumpOff:
-      serialPrintlnPgm(g_PgmM3_pc);
-      break;
+        serialPrintlnPgm(g_PgmM3_pc);
+        break;
       default: // modePumpError
-      serialPrintlnPgm(g_PgmM4_pc);
-      break;
+        serialPrintlnPgm(g_PgmM4_pc);
+        break;
     }
     serialPrintPgm(g_PgmC1_pc);
     Serial.println(g_Plants_pst[Channel_i].CurrTime_l);
@@ -514,6 +562,96 @@ void printInfo()
 
 
 //******************************************************************************************
+//  print log
+//******************************************************************************************
+void printLog()
+{
+  serialPrintlnPgm(g_PgmLogStart_pc);
+  for (int i = 0; i < g_NumPlants_ic; ++i) {
+    serialPrintPgm(g_PgmChannel_pc);
+    Serial.println(i);
+    int StartIdx0 = g_Log_pst[i].Index_i;
+    int EndIdx0 = g_LogSize_ic;
+    int StartIdx1 = 0;
+    int EndIdx1 = StartIdx0;
+    for (int k = StartIdx0; k < EndIdx0; ++k) {
+      printLogEntry(i, k);
+    }
+    for (int k = StartIdx1; k < EndIdx1; ++k) {
+      printLogEntry(i, k);
+    }
+  }
+  serialPrintlnPgm(g_PgmLogEnd_pc);
+}
+
+
+//******************************************************************************************
+//  print log entry
+//******************************************************************************************
+void printLogEntry(int Channel_i, int Index_i)
+{
+  if ((0 <= Index_i) && (g_LogSize_ic > Index_i) &&
+      (0 <= Channel_i) && (g_NumPlants_ic > Channel_i)) {
+    switch(g_Log_pst[Channel_i].Entry_pst[Index_i].Mode_enm) {
+      case modePumpReady:
+        serialPrintPgm(g_PgmM1_pc);
+        break;
+      case modePumpOn:
+        serialPrintPgm(g_PgmM2_pc);
+        break;
+      case modePumpOff:
+        serialPrintPgm(g_PgmM3_pc);
+        break;
+      default: // modePumpError
+        serialPrintPgm(g_PgmM4_pc);
+        break;
+    }
+    Serial.print(" ");
+    Serial.print(g_Log_pst[Channel_i].Entry_pst[Index_i].Sensor_i);
+    Serial.print(" ");
+    Serial.println(g_Log_pst[Channel_i].Entry_pst[Index_i].CurrTime_l);
+  }
+}
+
+
+//******************************************************************************************
+//  add log entry
+//******************************************************************************************
+void addLogEntry(int Channel_i)
+{
+  if (g_Log_pst[Channel_i].Index_i >= g_LogSize_ic) {
+    g_Log_pst[Channel_i].Index_i = 0;
+  }
+  int Index_i = g_Log_pst[Channel_i].Index_i;
+  g_Log_pst[Channel_i].Entry_pst[Index_i].Mode_enm =  g_Plants_pst[Channel_i].Mode_enm;
+  g_Log_pst[Channel_i].Entry_pst[Index_i].Sensor_i =  g_Plants_pst[Channel_i].Sensor_i;
+  g_Log_pst[Channel_i].Entry_pst[Index_i].CurrTime_l =  g_Plants_pst[Channel_i].CurrTime_l;
+  ++g_Log_pst[Channel_i].Index_i;
+}
+
+
+//******************************************************************************************
+//  pump on
+//******************************************************************************************
+void pumpOn(int Channel_i)
+{
+  digitalWrite(g_PumpPin_pic[Channel_i], LOW);
+  addLogEntry(Channel_i);
+}
+
+
+//******************************************************************************************
+//  pump off
+//******************************************************************************************
+void pumpOff(int Channel_i)
+{
+  digitalWrite(g_PumpPin_pic[Channel_i], HIGH);
+  addLogEntry(Channel_i);
+}
+
+
+
+//******************************************************************************************
 //  println from PROGMEM
 //******************************************************************************************
 void serialPrintlnPgm(const char* string_pc) {
@@ -549,5 +687,8 @@ ISR(TIMER1_COMPA_vect)
     g_HeartBeat_bl = !g_HeartBeat_bl;
     g_PrintInfo_bl = true;
     g_Timer_i=0;
+  }
+  if (++g_LogTimer_l >= g_LogInterval_lc) {
+    g_LogTimer_l = 0;
   }
 }
