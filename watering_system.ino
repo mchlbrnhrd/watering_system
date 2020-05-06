@@ -19,7 +19,7 @@ const long g_LogInterval_lc = 60L*60L*12L; // log interval 12 h
 
 // store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
-const char g_PgmHelp_pc[] PROGMEM = {"h: help; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode; l: read log; a: auto setup; c: cancel/continue"};
+const char g_PgmHelp_pc[] PROGMEM = {"h: help; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode; l: read log; a: auto calibration; c: cancel/continue"};
 const char g_PgmInfo_pc[] PROGMEM = {"Info"};
 const char g_PgmSensor_pc[] PROGMEM = {"Sensor "};
 const char g_PgmContinue_pc[] PROGMEM = {"Continue... "};
@@ -27,8 +27,8 @@ const char g_PgmChannel_pc[] PROGMEM = {"Channel: "};
 const char g_PgmCommand_pc[] PROGMEM = {"Command: "};
 const char g_PgmValue_pc[] PROGMEM = {"Value: "};
 const char g_PgmManual_pc[] PROGMEM = {"[0] pump off; [1] pump on; [c] cancel"};
-const char g_PgmAutoSetup0_pc[] PROGMEM = {"[1] Confirm dry mode; [c] cancel"};
-const char g_PgmAutoSetup1_pc[] PROGMEM = {"Pump on. [0] Stop and take value; [c] cancel"};
+const char g_PgmAutoCalibration0_pc[] PROGMEM = {"[1] Confirm dry mode; [c] cancel"};
+const char g_PgmAutoCalibration1_pc[] PROGMEM = {"Pump on. [0] Stop and take value; [c] cancel"};
 const char g_PgmReset_pc[] PROGMEM = {"Reset"};
 const char g_PgmSoftReset_pc[] PROGMEM = {"Soft reset"};
 const char g_PgmDebugMode_pc[] PROGMEM = {"Debug mode "};
@@ -206,7 +206,7 @@ void loop()
     } else if (Key_s.equals("l") || Key_s.equals("L")) {
       printLog();
     } else if (Key_s.equals("a") || Key_s.equals("A")) {
-      autoSetup();
+      autoCalibration();
     }
   }
 
@@ -488,10 +488,11 @@ void manualMode()
   softReset();
 }
 
+
 //******************************************************************************************
-//  autoSetup
+//  autoCalibration
 //******************************************************************************************
-void autoSetup()
+void autoCalibration()
 {
   bool Cancel_bl = false;
   serialPrintPgm(g_PgmChannel_pc);
@@ -508,7 +509,7 @@ void autoSetup()
       Channel_i = Key_s.toInt();
       g_Plants_pst[Channel_i].Mode_enm = modePumpOff;
       pumpOff(Channel_i);
-      serialPrintlnPgm(g_PgmAutoSetup0_pc);
+      serialPrintlnPgm(g_PgmAutoCalibration0_pc);
   }
   if (!Cancel_bl) {
     while (Serial.available() == 0);
@@ -521,7 +522,7 @@ void autoSetup()
     } 
   }
   if (!Cancel_bl) {
-    serialPrintlnPgm(g_PgmAutoSetup1_pc);
+    serialPrintlnPgm(g_PgmAutoCalibration1_pc);
     g_Plants_pst[Channel_i].Mode_enm = modePumpReady;
     pumpOn(Channel_i);
     while (Serial.available() == 0);
