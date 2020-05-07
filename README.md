@@ -3,6 +3,8 @@ Automatic irrigation of plants on vacation.
 
 For this self watering system you need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit".
 
+![watering system](doc/watering_system_small.jpg)
+
 This software supports
 * start pump when moisture of soil is too low
 * start pump after time out (e.g. after one day)
@@ -33,7 +35,7 @@ Type 'h' to show help.
 _Hint_: Connect reset pin with 10 k Ohm pull up resistor and 10 nF capacitor against ground to avoid reset when connecting computer via USB cable to running system. Otherwise log file will be cleared.
 
 ## change values
-Type 't and you get the information of all channels. Type channel number for which values should be changed. To change threshold low for example type 'S1' and afterwards type new value. With 'c' the main program is continued. Typing again 't' to check the values and 'c' to continue again.
+Type 't' and information of all channels is printed. Type channel number to edit values for the specific channel. To change _threshold low_ for example type 'S1' and afterwards type new value. With 'c' the main program is continued. Type again 't' to check the values and 'c' to continue again.
 
 ## auto calibration
 Type 'a'. Afterwards type channel number. Make sure sensor is dry. Then type '1'. Pump is switched on. When watering is sufficient then type '0' to stop pump. The sensor values are taken to set the new threshold.
