@@ -20,17 +20,23 @@ Connect digital outputs of arduino (microcontroller) with relais module inputs. 
 
 # Terminal
 Type 'h' to show help.
-* *d* _debug_: Print continously debug informations
-* *s* _soft reset_ : reset timer and switch off pump
-* *r* _reset_: hard reset all values, thresholds, timer values and switch off pump
-* *i* _short info_: print value of sensors
-* *t* _terminal_: interact with software and change threshold and timer values
-* *m* _manual mode_: switch on and off each pump manually
-* *l* _read log_: read log values of each channel
-* *a* _auto calibration_: wizard to set threshold values
-* *c* _cancel_: go back to main software functionality from each menu point
+* __d__ _debug_: Print continously debug informations
+* __s__ _soft reset_ : reset timer and switch off pump
+* __r__ _reset_: hard reset all values, thresholds, timer values and switch off pump
+* __i__ _short info_: print value of sensors
+* __t__ _terminal_: interact with software and change threshold and timer values
+* __m__ _manual mode_: switch on and off each pump manually
+* __l__ _read log_: read log values of each channel
+* __a__ _auto calibration_: wizard to set threshold values
+* __c__ _cancel_: go back to main software functionality from each menu point
 
 _Hint_: Connect reset pin with 10 k Ohm pull up resistor and 10 nF capacitor against ground to avoid reset when connecting computer via USB cable to running system. Otherwise log file will be cleared.
+
+## change values
+Type 't and you get the information of all channels. Type channel number for which values should be changed. To change threshold low for example type 'S1' and afterwards type new value. With 'c' the main program is continued. Typing again 't' to check the values and 'c' to continue again.
+
+## auto calibration
+Type 'a'. Afterwards type channel number. Make sure sensor is dry. Then type '1'. Pump is switched on. When watering is sufficient then type '0' to stop pump. The sensor values are taken to set the new threshold.
 
 # supported requirements
 This software supports following requirements:

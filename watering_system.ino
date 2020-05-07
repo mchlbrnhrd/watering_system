@@ -451,8 +451,8 @@ void manualMode()
   if (Key_s.equals("c") || Key_s.equals("C")) {
     Finished_bl = true;
   } else {
-      Channel_i = Key_s.toInt();
-      serialPrintlnPgm(g_PgmManual_pc);
+    Channel_i = Key_s.toInt();
+    serialPrintlnPgm(g_PgmManual_pc);
   }
   while(!Finished_bl) {
     if (Serial.available() > 0) {
@@ -506,10 +506,10 @@ void autoCalibration()
   if (Key_s.equals("c") || Key_s.equals("C")) {
     Cancel_bl = true;
   } else {
-      Channel_i = Key_s.toInt();
-      g_Plants_pst[Channel_i].Mode_enm = modePumpOff;
-      pumpOff(Channel_i);
-      serialPrintlnPgm(g_PgmAutoCalibration0_pc);
+    Channel_i = Key_s.toInt();
+    g_Plants_pst[Channel_i].Mode_enm = modePumpOff;
+    pumpOff(Channel_i);
+    serialPrintlnPgm(g_PgmAutoCalibration0_pc);
   }
   if (!Cancel_bl) {
     while (Serial.available() == 0);
