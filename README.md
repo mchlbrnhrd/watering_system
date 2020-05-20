@@ -18,7 +18,9 @@ This software supports
   - start auto calibraton
 
 # hardware setup
-Connect digital outputs of arduino (microcontroller) with relais module inputs. Connect analog inputs of arduino with capacitive soil moisture sensors. Connect pumps with relais module switches and power supply.
+Connect digital outputs of arduino (microcontroller) with relais module inputs. Connect analog inputs of arduino with capacitive soil moisture sensors. Connect pumps with relais module switches and power supply. Make sure to use correct voltages for arduino board and pump.
+
+![hardware setup](doc/scetch.jpg)
 
 # Terminal
 Type 'h' to show help.
