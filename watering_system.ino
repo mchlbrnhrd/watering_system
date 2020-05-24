@@ -15,7 +15,7 @@ const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A3};
 const int g_PumpPin_pic[g_NumPlants_ic] = {2, 3, 4, 5};
 
 const int g_LogSize_ic = 32; // number of log entries
-const long g_LogInterval_lc = 60L*60L*12L; // log interval 12 h
+const long g_LogInterval_lc = 60L*60L*6L; // log interval 6 h
 
 // store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
@@ -164,7 +164,13 @@ void loop()
 {
   // show heart beat
   digitalWrite(LED_BUILTIN, g_HeartBeat_bl);
-  
+
+  // LED always on when an error occured
+  for (int i=0; i < g_NumPlants_ic; ++i) {
+    if (g_Plants_pst[i].Mode_enm == modePumpError) {
+      digitalWrite(LED_BUILTIN, HIGH);
+    }
+  }
   // read sensor values
   readSensor();
 
@@ -243,9 +249,10 @@ void softReset()
 void reset() 
 {
 
+//  example values:
 //  S1 threshold low             : 350
 //  S2 threshold high            : 450
-//  S3 threshold expected change : 600
+//  S3 threshold expected change : 445
 //  T1 timeout pump on           : 5
 //  T2 time pump on max          : 20
 //  T3 time wait                 : 100
@@ -253,14 +260,14 @@ void reset()
 //  T5 time out error state      : 86400 = 24 h
 
   for (int i = 0; i < g_NumPlants_ic; ++i) {  
-    g_Plants_pst[i].ThresholdLow_i = 350;
-    g_Plants_pst[i].ThresholdHigh_i = 450;
-    g_Plants_pst[i].ThresholdExpectedChange_i = 600; // use large value, e.g. 600 to deactivate this function
-    g_Plants_pst[i].TimeOutPumpOn_l = 5; 
-    g_Plants_pst[i].TimePumpOnMax_l = 20;
-    g_Plants_pst[i].TimeWait_l = 100;
-    g_Plants_pst[i].TimeOutPumpOff_l = 3L*60L*60L*24L; // 3 days
-    g_Plants_pst[i].TimeOutErrorState_l = 60L*60L*24L; // 24 hours
+    g_Plants_pst[i].ThresholdLow_i = 2000; // large number as default to deactive: force user defined setting
+    g_Plants_pst[i].ThresholdHigh_i = 2100; //large number as default to deactivate: force user defined setting
+    g_Plants_pst[i].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
+    g_Plants_pst[i].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[i].TimePumpOnMax_l = 20L;
+    g_Plants_pst[i].TimeWait_l = 1L*60L*60L*6L; // 6 hours
+    g_Plants_pst[i].TimeOutPumpOff_l = 2L*60L*60L*24L; // 2 days
+    g_Plants_pst[i].TimeOutErrorState_l = 60L*60L*1L; // 1 hour
   }
   g_DebugMode_bl = false;
   g_PrintInfo_bl = false;
