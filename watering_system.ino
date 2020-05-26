@@ -11,7 +11,7 @@
 const int g_NumPlants_ic = 4;
 
 // pin connection of sensor and pump (relais module) to arduino board
-const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A3};
+const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A5};
 const int g_PumpPin_pic[g_NumPlants_ic] = {2, 3, 4, 5};
 
 const int g_LogSize_ic = 32; // number of log entries
@@ -202,7 +202,7 @@ void loop()
       reset();
     } else if (Key_s.equals("s") || Key_s.equals("S")) {
       serialPrintlnPgm(g_PgmSoftReset_pc);
-      softReset();
+      softReset(true);
     } else if (Key_s.equals("d") || Key_s.equals("D")) {
       g_DebugMode_bl = !g_DebugMode_bl;
       serialPrintPgm(g_PgmDebugMode_pc);
@@ -231,12 +231,14 @@ void loop()
 //******************************************************************************************
 //  soft reset
 //******************************************************************************************
-void softReset() 
+void softReset(bool f_CurrTime_bl) 
 {
   for (int i = 0; i < g_NumPlants_ic; ++i) {
     g_Plants_pst[i].Sensor_i = 0;
     g_Plants_pst[i].Mode_enm = modePumpReady;
-    g_Plants_pst[i].CurrTime_l = 0;
+    if (f_CurrTime_bl) {
+      g_Plants_pst[i].CurrTime_l = 0;
+    }
     pumpOff(i); // pump off
   }
   g_Timer_i = 0;
@@ -280,7 +282,7 @@ void reset()
        g_Log_pst[i].Entry_pst[k].CurrTime_l = 0;
     }
   }
-  softReset();
+  softReset(true);
 }
 
 
@@ -492,7 +494,7 @@ void manualMode()
     }
   }
   serialPrintlnPgm(g_PgmContinue_pc);
-  softReset();
+  softReset(false);
 }
 
 
@@ -546,14 +548,14 @@ void autoCalibration()
   if (!Cancel_bl) {
     ThresholdLow_l = (ThresholdLow_l * 105L) / 100L; // add 5 percent
     ThresholdHigh_l = (ThresholdHigh_l * 95L) / 100L; // subtract 5 percent
-     g_Plants_pst[Channel_i].ThresholdLow_i = (int)ThresholdLow_l;
-     g_Plants_pst[Channel_i].ThresholdHigh_i = (int)ThresholdHigh_l;
-     // expected change close to threshold high
-     g_Plants_pst[Channel_i].ThresholdExpectedChange_i = (ThresholdHigh_l*98L + ThresholdLow_l*2L)/100L;
+    g_Plants_pst[Channel_i].ThresholdLow_i = (int)ThresholdLow_l;
+    g_Plants_pst[Channel_i].ThresholdHigh_i = (int)ThresholdHigh_l;
+    // expected change close to threshold high
+    g_Plants_pst[Channel_i].ThresholdExpectedChange_i = (ThresholdHigh_l*98L + ThresholdLow_l*2L)/100L;
   }
 
   serialPrintlnPgm(g_PgmContinue_pc);
-  softReset();
+  softReset(false);
 }
 
 
