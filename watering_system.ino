@@ -11,11 +11,11 @@
 const int g_NumPlants_ic = 4;
 
 // pin connection of sensor and pump (relais module) to arduino board
-const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A5};
+const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A3};
 const int g_PumpPin_pic[g_NumPlants_ic] = {2, 3, 4, 5};
 
-const int g_LogSize_ic = 32; // number of log entries
-const long g_LogInterval_lc = 60L*60L*6L; // log interval 6 h
+const int g_LogSize_ic = 80; // number of log entries
+const long g_LogInterval_lc = 60L*60L*2L; // log interval 2 h
 
 // store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
@@ -90,9 +90,8 @@ struct typedefPlant {
 };
 
 struct typedefLogEntry {
-  ModeType Mode_enm;
-  int Sensor_i;
-  long CurrTime_l;
+  long TotalTime_l;
+  uint16_t Data_pui16[g_NumPlants_ic];
 };
 
 struct typedefLog {
@@ -106,9 +105,10 @@ struct typedefLog {
 //******************************************************************************************
 //******************************************************************************************
 typedefPlant g_Plants_pst[g_NumPlants_ic];
-typedefLog g_Log_pst[g_NumPlants_ic];
+typedefLog g_Log_st;
 
 int g_Timer_i = 0;
+long g_TotalTime_l = 0;
 bool g_HeartBeat_bl = false;
 bool g_PrintInfo_bl = false;
 bool g_DebugMode_bl = false;
@@ -179,9 +179,7 @@ void loop()
 
   // create log entry
   if ((0 == g_LogTimer_l) && !g_LogDone_bl) {
-    for (int i = 0; i < g_NumPlants_ic; ++i) {
-      addLogEntry(i);
-    }
+    addLogEntry();
     g_LogDone_bl = true;
   } else if (0 != g_LogTimer_l) {
     g_LogDone_bl = false;
@@ -274,12 +272,13 @@ void reset()
   g_DebugMode_bl = false;
   g_PrintInfo_bl = false;
   g_LogTimer_l = 0;
+  g_TotalTime_l = 0;
   g_LogDone_bl = false;
-  for (int i = 0; i < g_NumPlants_ic; ++i) {
-    for (int k = 0; k < g_LogSize_ic; ++k) {
-       g_Log_pst[i].Entry_pst[k].Mode_enm = modePumpReady;
-       g_Log_pst[i].Entry_pst[k].Sensor_i = 0;
-       g_Log_pst[i].Entry_pst[k].CurrTime_l = 0;
+
+  for (int k = 0; k < g_LogSize_ic; ++k) {
+    g_Log_st.Entry_pst[k].TotalTime_l = 0;
+    for (int i = 0; i < g_NumPlants_ic; ++i) {
+      g_Log_st.Entry_pst[k].Data_pui16[i] = 0;
     }
   }
   softReset(true);
@@ -641,19 +640,15 @@ void printInfo()
 void printLog()
 {
   serialPrintlnPgm(g_PgmLogStart_pc);
-  for (int i = 0; i < g_NumPlants_ic; ++i) {
-    serialPrintPgm(g_PgmChannel_pc);
-    Serial.println(i);
-    int StartIdx0 = g_Log_pst[i].Index_i;
-    int EndIdx0 = g_LogSize_ic;
-    int StartIdx1 = 0;
-    int EndIdx1 = StartIdx0;
-    for (int k = StartIdx0; k < EndIdx0; ++k) {
-      printLogEntry(i, k);
-    }
-    for (int k = StartIdx1; k < EndIdx1; ++k) {
-      printLogEntry(i, k);
-    }
+  int StartIdx0 = g_Log_st.Index_i;
+  int EndIdx0 = g_LogSize_ic;
+  int StartIdx1 = 0;
+  int EndIdx1 = StartIdx0;
+  for (int k = StartIdx0; k < EndIdx0; ++k) {
+    printLogEntry(k);
+  }
+  for (int k = StartIdx1; k < EndIdx1; ++k) {
+    printLogEntry(k);
   }
   serialPrintlnPgm(g_PgmLogEnd_pc);
 }
@@ -662,28 +657,37 @@ void printLog()
 //******************************************************************************************
 //  print log entry
 //******************************************************************************************
-void printLogEntry(int Channel_i, int Index_i)
+void printLogEntry(int Index_i)
 {
-  if ((0 <= Index_i) && (g_LogSize_ic > Index_i) &&
-      (0 <= Channel_i) && (g_NumPlants_ic > Channel_i)) {
-    switch(g_Log_pst[Channel_i].Entry_pst[Index_i].Mode_enm) {
-      case modePumpReady:
-        serialPrintPgm(g_PgmM1_pc);
-        break;
-      case modePumpOn:
-        serialPrintPgm(g_PgmM2_pc);
-        break;
-      case modePumpOff:
-        serialPrintPgm(g_PgmM3_pc);
-        break;
-      default: // modePumpError
-        serialPrintPgm(g_PgmM4_pc);
-        break;
+  if ((0 <= Index_i) && (g_LogSize_ic > Index_i)) {
+    Serial.print(g_Log_st.Entry_pst[Index_i].TotalTime_l);
+    Serial.print(", ");
+    for (int Channel_i=0; Channel_i < g_NumPlants_ic; ++Channel_i) {
+      serialPrintPgm(g_PgmChannel_pc);
+      Serial.print(Channel_i);
+      Serial.print(": ");
+      int data_i = g_Log_st.Entry_pst[Index_i].Data_pui16[Channel_i];
+      int sensor_i = data_i & 0xFFFU;
+      ModeType mode_t = (ModeType)(data_i >> 12);
+      switch(mode_t) {
+        case modePumpReady:
+          serialPrintPgm(g_PgmM1_pc);
+          break;
+        case modePumpOn:
+          serialPrintPgm(g_PgmM2_pc);
+          break;
+       case modePumpOff:
+          serialPrintPgm(g_PgmM3_pc);
+          break;
+       default: // modePumpError
+          serialPrintPgm(g_PgmM4_pc);
+          break;
+      }
+      Serial.print(", ");
+      Serial.print(sensor_i);
+      Serial.print(", ");
     }
-    Serial.print(" ");
-    Serial.print(g_Log_pst[Channel_i].Entry_pst[Index_i].Sensor_i);
-    Serial.print(" ");
-    Serial.println(g_Log_pst[Channel_i].Entry_pst[Index_i].CurrTime_l);
+    Serial.println("");
   }
 }
 
@@ -691,16 +695,19 @@ void printLogEntry(int Channel_i, int Index_i)
 //******************************************************************************************
 //  add log entry
 //******************************************************************************************
-void addLogEntry(int Channel_i)
+void addLogEntry()
 {
-  if (g_Log_pst[Channel_i].Index_i >= g_LogSize_ic) {
-    g_Log_pst[Channel_i].Index_i = 0;
+  if (g_Log_st.Index_i >= g_LogSize_ic) {
+    g_Log_st.Index_i = 0;
   }
-  int Index_i = g_Log_pst[Channel_i].Index_i;
-  g_Log_pst[Channel_i].Entry_pst[Index_i].Mode_enm =  g_Plants_pst[Channel_i].Mode_enm;
-  g_Log_pst[Channel_i].Entry_pst[Index_i].Sensor_i =  g_Plants_pst[Channel_i].Sensor_i;
-  g_Log_pst[Channel_i].Entry_pst[Index_i].CurrTime_l =  g_Plants_pst[Channel_i].CurrTime_l;
-  ++g_Log_pst[Channel_i].Index_i;
+  g_Log_st.Entry_pst[g_Log_st.Index_i].TotalTime_l = g_TotalTime_l;
+  
+  for (int Channel_i = 0; Channel_i < g_NumPlants_ic; ++Channel_i) {
+    uint16_t Data_ui16 = g_Plants_pst[Channel_i].Sensor_i;
+    Data_ui16 |= (g_Plants_pst[Channel_i].Mode_enm << 12);
+    g_Log_st.Entry_pst[g_Log_st.Index_i].Data_pui16[Channel_i] = Data_ui16;
+  }
+  ++g_Log_st.Index_i;
 }
 
 
@@ -710,7 +717,7 @@ void addLogEntry(int Channel_i)
 void pumpOn(int Channel_i)
 {
   digitalWrite(g_PumpPin_pic[Channel_i], LOW);
-  addLogEntry(Channel_i);
+  addLogEntry();
 }
 
 
@@ -720,7 +727,7 @@ void pumpOn(int Channel_i)
 void pumpOff(int Channel_i)
 {
   digitalWrite(g_PumpPin_pic[Channel_i], HIGH);
-  addLogEntry(Channel_i);
+  addLogEntry();
 }
 
 
@@ -755,6 +762,7 @@ ISR(TIMER1_COMPA_vect)
 {
   ++g_Timer_i;
   if (g_Timer_i >= 1) {
+    ++g_TotalTime_l;
     for(int i=0; i < g_NumPlants_ic; ++i) {
       ++g_Plants_pst[i].CurrTime_l;
     }
