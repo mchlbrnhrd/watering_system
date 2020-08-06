@@ -1,0 +1,108 @@
+<html>
+  <head>
+    <title>watering system - Michael Bernhard</title>
+  </head>
+
+  <body>
+  <p><i>Log files:&nbsp;</i> <tt>
+    <a href="watering_log.txt">watering_log.txt</a>
+    <a href="watering_log_human.txt">watering_log_human.txt</a>
+    <a href="watering_threshold.txt">watering_threshold.txt</a>
+    <a href="watering_threshold_human.txt">watering_threshold_human.txt</a>
+    <a href="dates.txt">dates.txt</a> -> DATEwatering_log_human.txt
+  </tt></p>
+  <canvas id="EvaluationCanvas" width="1000" height="500" style="border:1px solid #d0d0d0;">
+     Your browser does not support the HTML5 canvas tag.</canvas>
+
+  <script>
+    function loadFile(filePathName) {
+      var content = null;
+      var xmlhttp = new XMLHttpRequest();
+      xmlhttp.open("GET", filePathName, false);
+      xmlhttp.send();
+      if (xmlhttp.status==200) {
+        content = xmlhttp.responseText;
+      }
+     return content;
+    }
+
+    var logData = loadFile("watering_log.txt");
+    while (logData.indexOf("\r") >= 0) {
+      logData = logData.replace("\r", "");
+    }
+    var dataLines = logData.split("\n");
+    var max_x = 1;
+    var max_y = 1;
+    var min_x = 100000;
+    var min_y = 100000;
+    var numColumns = 0;
+
+    var c = document.getElementById("EvaluationCanvas");
+    var ctx = c.getContext("2d");
+
+    // read all data lines and find out minimum and maximum values for scaling
+    for (var i = 0; i < dataLines.length; i++) {
+      var curLine = dataLines[i];
+      var curLineSplit = curLine.split(",");
+      if (curLineSplit.length > numColumns) {
+        numColumns=curLineSplit.length;
+      }
+      if (curLineSplit.length > 1) {
+        var x=parseInt(curLineSplit[0]);
+        if (x > max_x) {
+          max_x = x;
+        }
+        if (x < min_x) {
+          min_x = x;
+        }
+        for (var k = 1; k < curLineSplit.length; k++) {
+          var y=parseInt(curLineSplit[k]);
+          if (y > max_y) {
+            max_y = y;
+          }
+          if (y < min_y) {
+            min_y = y;
+          }
+        }
+      }
+    }
+    // draw data
+    for (var k=1; k < numColumns; k++) {
+      switch (k) {
+        case 1:
+          ctx.strokeStyle = "#AA0000";
+          break;
+        case 2:
+          ctx.strokeStyle = "#00AA00";
+          break;
+        case 3:
+          ctx.strokeStyle = "#0000AA";
+          break;
+        case 4:
+          ctx.strokeStyle = "#FF00AA";
+          break;
+        default:
+          ctx.strokeStyle = "#000000";
+      }
+
+      ctx.beginPath();
+      var first = 1;
+      for (var i = 0; i < arrLines.length; i++) {
+        var curLine = dataLines[i];
+        var curLineSplit = curLine.split(",");
+        if (num == curLineSplit.length) {
+          var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*1000;
+          var y=(parseInt(curLineSplit[k])-min_y)/(max_y-min_y)*500;
+          if (0 != first) {
+            ctx.moveTo(x,y);
+            first=0;
+          } else {
+            ctx.lineTo(x,y);
+          }
+        }
+      }
+      ctx.stroke();
+    }
+  </script>
+  </body>
+</html>

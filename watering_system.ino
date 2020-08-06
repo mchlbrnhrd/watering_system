@@ -1,5 +1,6 @@
 // Watering system by Michael Bernhard; 2020.04.23
 
+#include <FileIO.h>
 
 //******************************************************************************************
 //******************************************************************************************
@@ -14,14 +15,15 @@ const int g_NumPlants_ic = 4;
 const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A3};
 const int g_PumpPin_pic[g_NumPlants_ic] = {2, 3, 4, 5};
 
-const int g_LogSize_ic = 80; // number of log entries
-const long g_LogInterval_lc = 60L*60L*2L; // log interval 2 h
+const int g_LogSize_ic = 40; // number of log entries
+const long g_LogInterval_lc = 60L*60L; // log interval 1 h
 
 // store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
-const char g_PgmHelp_pc[] PROGMEM = {"h: help; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode; l: read log; a: auto calibration; c: cancel/continue"};
+const char g_PgmHelp_pc[] PROGMEM = {"h: help; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode; l: read log; a: auto calibration; w: write threshold values; c: cancel/continue"};
 const char g_PgmInfo_pc[] PROGMEM = {"Info"};
 const char g_PgmSensor_pc[] PROGMEM = {"Sensor "};
+const char g_PgmTime_pc[] PROGMEM = {"Time: "};
 const char g_PgmContinue_pc[] PROGMEM = {"Continue... "};
 const char g_PgmChannel_pc[] PROGMEM = {"Channel: "};
 const char g_PgmCommand_pc[] PROGMEM = {"Command: "};
@@ -56,6 +58,14 @@ const char g_PgmDebugR2_pc[] PROGMEM = {": pump on (threshold) R2"};
 const char g_PgmDebugR3_pc[] PROGMEM = {": pump off (threshold) R3"};
 const char g_PgmDebugR4_pc[] PROGMEM = {": pump off (time max on) R4"};
 const char g_PgmDebugR5_pc[] PROGMEM = {": ready R5"};
+
+const char g_PgmBasePath_pc[] PROGMEM = "/mnt/sd/watering/";
+const char g_PgmWateringLog_pc[] PROGMEM  = "watering_log.txt";
+const char g_PgmWateringLogHuman_pc[] PROGMEM  = "watering_log_human.txt";
+const char g_PgmWateringThreshold_pc[] PROGMEM  = "watering_threshold.txt";
+const char g_PgmWateringThresholdHuman_pc[] PROGMEM  = "watering_threshold_human.txt";
+const char g_PgmDates_pc[] PROGMEM = "dates.txt";
+const char g_PgmPushToServerScript_pc[] PROGMEM = "pushToServer.sh";
 
 
 
@@ -141,9 +151,11 @@ void setup()
     digitalWrite(LED_BUILTIN, LOW);
     delay(30);
   }
-  
+  Bridge.begin();
   Serial.begin(9600);
+  FileSystem.begin();
   serialPrintlnPgm(g_PgmWatering_pc);
+  delay(1000);
   reset();
 
   // timer interrupt settings (1 Hz)
@@ -180,6 +192,11 @@ void loop()
   // create log entry
   if ((0 == g_LogTimer_l) && !g_LogDone_bl) {
     addLogEntry();
+    TIMSK1 &=~(1 << OCIE1A);
+    writeLogEntrySD();
+    pushToServer(g_PgmWateringLog_pc);
+    pushToServer(g_PgmWateringLogHuman_pc);
+    TIMSK1 |=(1 << OCIE1A);
     g_LogDone_bl = true;
   } else if (0 != g_LogTimer_l) {
     g_LogDone_bl = false;
@@ -187,6 +204,7 @@ void loop()
 
   // check if key is pressed
   while (Serial.available() > 0) {
+    TIMSK1 &=~(1 << OCIE1A);
     String Key_s = Serial.readString();
     Key_s.trim();
     if (Key_s.equals("h") || Key_s.equals("H")) {
@@ -211,18 +229,19 @@ void loop()
       printLog();
     } else if (Key_s.equals("a") || Key_s.equals("A")) {
       autoCalibration();
+    } else if (Key_s.equals("w") || Key_s.equals("W")) {
+      writeThresholdSD();
     }
+    TIMSK1 |=(1 << OCIE1A);
   }
-
+  
   // print sensor data in debug mode
   if (g_DebugMode_bl) {
     if (g_PrintInfo_bl) {
       g_PrintInfo_bl = false;
       printShortInfo();
     }
-  }
-
- 
+  } 
 }
 
 
@@ -248,7 +267,72 @@ void softReset(bool f_CurrTime_bl)
 //******************************************************************************************
 void reset() 
 {
+  // create backup files and push to server
+  Process proc;
+  String date="";
+  getTimeStamp(date);
+  String cmd="mv ";
+  stringFromPgm(g_PgmBasePath_pc, cmd);
+  stringFromPgm(g_PgmWateringLog_pc, cmd);
+  cmd += " ";
+  stringFromPgm(g_PgmBasePath_pc, cmd);
+  cmd += date;
+  stringFromPgm(g_PgmWateringLog_pc, cmd);
+  proc.runShellCommand(cmd);
+  delay(300);
+  cmd = date;
+  stringFromPgm(g_PgmWateringLog_pc, cmd);
+  pushToServer(cmd);
 
+  cmd="mv ";
+  stringFromPgm(g_PgmBasePath_pc, cmd);
+  stringFromPgm(g_PgmWateringLogHuman_pc, cmd);
+  cmd += " ";
+  stringFromPgm(g_PgmBasePath_pc, cmd);
+  cmd += date;
+  stringFromPgm(g_PgmWateringLogHuman_pc, cmd);
+  proc.runShellCommand(cmd);
+  delay(300);
+  cmd = date;
+  stringFromPgm(g_PgmWateringLogHuman_pc, cmd);
+  pushToServer(cmd);
+
+  cmd="";
+  stringFromPgm(g_PgmBasePath_pc, cmd);
+  stringFromPgm(g_PgmDates_pc, cmd);
+  File dateLogFile = FileSystem.open(cmd.c_str(), FILE_APPEND);
+  if (dateLogFile) {
+    dateLogFile.println(date);
+    dateLogFile.close();
+  }
+  delay(300);
+  pushToServer(g_PgmDates_pc);
+
+  // read threshold values from SD card
+  readThresholdSD();    
+
+  // set variables
+  g_DebugMode_bl = false;
+  g_PrintInfo_bl = false;
+  g_LogTimer_l = 0;
+  g_TotalTime_l = 0;
+  g_LogDone_bl = false;
+
+  g_Log_st.Index_i = 0;
+  for (int k = 0; k < g_LogSize_ic; ++k) {
+    g_Log_st.Entry_pst[k].TotalTime_l = 0;
+    for (int i = 0; i < g_NumPlants_ic; ++i) {
+      g_Log_st.Entry_pst[k].Data_pui16[i] = 0;
+    }
+  }
+  softReset(true);
+}
+
+//******************************************************************************************
+//  defaultThreshold
+//******************************************************************************************
+void defaultThreshold() 
+{
 //  example values:
 //  S1 threshold low             : 350
 //  S2 threshold high            : 450
@@ -266,22 +350,9 @@ void reset()
     g_Plants_pst[i].TimeOutPumpOn_l = 5L; 
     g_Plants_pst[i].TimePumpOnMax_l = 20L;
     g_Plants_pst[i].TimeWait_l = 1L*60L*60L*6L; // 6 hours
-    g_Plants_pst[i].TimeOutPumpOff_l = 2L*60L*60L*24L; // 2 days
+    g_Plants_pst[i].TimeOutPumpOff_l = 2L*60L*60L*12L; // 2 days + TimeWait
     g_Plants_pst[i].TimeOutErrorState_l = 60L*60L*1L; // 1 hour
-  }
-  g_DebugMode_bl = false;
-  g_PrintInfo_bl = false;
-  g_LogTimer_l = 0;
-  g_TotalTime_l = 0;
-  g_LogDone_bl = false;
-
-  for (int k = 0; k < g_LogSize_ic; ++k) {
-    g_Log_st.Entry_pst[k].TotalTime_l = 0;
-    for (int i = 0; i < g_NumPlants_ic; ++i) {
-      g_Log_st.Entry_pst[k].Data_pui16[i] = 0;
-    }
-  }
-  softReset(true);
+  } 
 }
 
 
@@ -462,7 +533,7 @@ void manualMode()
     Channel_i = Key_s.toInt();
     serialPrintlnPgm(g_PgmManual_pc);
   }
-  while(!Finished_bl) {
+  while(!Finished_bl && (Channel_i < g_NumPlants_ic)) {
     if (Serial.available() > 0) {
       Key_s = Serial.readString();
       Key_s.trim();
@@ -515,9 +586,13 @@ void autoCalibration()
     Cancel_bl = true;
   } else {
     Channel_i = Key_s.toInt();
-    g_Plants_pst[Channel_i].Mode_enm = modePumpOff;
-    pumpOff(Channel_i);
-    serialPrintlnPgm(g_PgmAutoCalibration0_pc);
+    if (Channel_i < g_NumPlants_ic) {
+      g_Plants_pst[Channel_i].Mode_enm = modePumpOff;
+      pumpOff(Channel_i);
+      serialPrintlnPgm(g_PgmAutoCalibration0_pc);
+    } else {
+      Cancel_bl = true;
+    }
   }
   if (!Cancel_bl) {
     while (Serial.available() == 0);
@@ -546,13 +621,13 @@ void autoCalibration()
   }
   if (!Cancel_bl) {
     ThresholdLow_l = (ThresholdLow_l * 105L) / 100L; // add 5 percent
-    ThresholdHigh_l = (ThresholdHigh_l * 95L) / 100L; // subtract 5 percent
+    ThresholdHigh_l = (ThresholdHigh_l * 85L) / 100L; // subtract 15 percent
     g_Plants_pst[Channel_i].ThresholdLow_i = (int)ThresholdLow_l;
     g_Plants_pst[Channel_i].ThresholdHigh_i = (int)ThresholdHigh_l;
     // expected change close to threshold high
     g_Plants_pst[Channel_i].ThresholdExpectedChange_i = (ThresholdHigh_l*98L + ThresholdLow_l*2L)/100L;
   }
-
+  writeThresholdSD();
   serialPrintlnPgm(g_PgmContinue_pc);
   softReset(false);
 }
@@ -563,6 +638,8 @@ void autoCalibration()
 //******************************************************************************************
 void printShortInfo()
 {
+  serialPrintPgm(g_PgmTime_pc);
+  Serial.println(g_TotalTime_l);
   for (int i=0; i < g_NumPlants_ic; ++i) {
     serialPrintPgm(g_PgmSensor_pc);
     Serial.print(i);
@@ -640,13 +717,28 @@ void printInfo()
 void printLog()
 {
   serialPrintlnPgm(g_PgmLogStart_pc);
+  // print time and threshold values
+  serialPrintPgm(g_PgmTime_pc);
+  Serial.println(g_TotalTime_l);
+  for (int Channel_i = 0; Channel_i < g_NumPlants_ic; ++Channel_i) {
+    serialPrintPgm(g_PgmS1_pc);
+    Serial.println(g_Plants_pst[Channel_i].ThresholdLow_i);
+    serialPrintPgm(g_PgmS2_pc);
+    Serial.println(g_Plants_pst[Channel_i].ThresholdHigh_i);
+    serialPrintPgm(g_PgmS3_pc);
+    Serial.println(g_Plants_pst[Channel_i].ThresholdExpectedChange_i);
+  }
+
+  // print log data
   int StartIdx0 = g_Log_st.Index_i;
   int EndIdx0 = g_LogSize_ic;
   int StartIdx1 = 0;
   int EndIdx1 = StartIdx0;
+  // print old content
   for (int k = StartIdx0; k < EndIdx0; ++k) {
     printLogEntry(k);
   }
+  // print new content
   for (int k = StartIdx1; k < EndIdx1; ++k) {
     printLogEntry(k);
   }
@@ -666,9 +758,9 @@ void printLogEntry(int Index_i)
       serialPrintPgm(g_PgmChannel_pc);
       Serial.print(Channel_i);
       Serial.print(": ");
-      int data_i = g_Log_st.Entry_pst[Index_i].Data_pui16[Channel_i];
-      int sensor_i = data_i & 0xFFFU;
-      ModeType mode_t = (ModeType)(data_i >> 12);
+      uint16_t data_ui16 = g_Log_st.Entry_pst[Index_i].Data_pui16[Channel_i];
+      int sensor_i = (int)(data_ui16 & 0xFFFU);
+      ModeType mode_t = (ModeType)(data_ui16 >> 12);
       switch(mode_t) {
         case modePumpReady:
           serialPrintPgm(g_PgmM1_pc);
@@ -704,7 +796,7 @@ void addLogEntry()
   
   for (int Channel_i = 0; Channel_i < g_NumPlants_ic; ++Channel_i) {
     uint16_t Data_ui16 = g_Plants_pst[Channel_i].Sensor_i;
-    Data_ui16 |= (g_Plants_pst[Channel_i].Mode_enm << 12);
+    Data_ui16 |= ((uint16_t)g_Plants_pst[Channel_i].Mode_enm << 12);
     g_Log_st.Entry_pst[g_Log_st.Index_i].Data_pui16[Channel_i] = Data_ui16;
   }
   ++g_Log_st.Index_i;
@@ -736,11 +828,9 @@ void pumpOff(int Channel_i)
 //  println from PROGMEM
 //******************************************************************************************
 void serialPrintlnPgm(const char* string_pc) {
-  const int len = strlen_P(string_pc);
-  for (int k = 0; k < len-1; ++k) {
-    Serial.print((char)pgm_read_byte_near(string_pc + k));
-  }
-  Serial.println((char)pgm_read_byte_near(string_pc + len - 1));
+  String msg="";
+  stringFromPgm(string_pc, msg);
+  Serial.println(msg);
 }
 
 
@@ -748,9 +838,19 @@ void serialPrintlnPgm(const char* string_pc) {
 //  print from PROGMEM
 //******************************************************************************************
 void serialPrintPgm(const char* string_pc) {
+  String msg="";
+  stringFromPgm(string_pc, msg);
+  Serial.print(msg);
+}
+
+
+//******************************************************************************************
+//  string from PROGMEM
+//******************************************************************************************
+void stringFromPgm(const char* string_pc, String& value) {
   const int len = strlen_P(string_pc);
   for (int k = 0; k < len; ++k) {
-    Serial.print((char)pgm_read_byte_near(string_pc + k));
+    value += (char)pgm_read_byte_near(string_pc + k);
   }
 }
 
@@ -772,5 +872,292 @@ ISR(TIMER1_COMPA_vect)
   }
   if (++g_LogTimer_l >= g_LogInterval_lc) {
     g_LogTimer_l = 0;
+  }
+}
+
+
+//******************************************************************************************
+//  write log entry to SD card
+//******************************************************************************************
+void writeLogEntrySD()
+{
+  { // human readable version
+    String file="";
+    stringFromPgm(g_PgmBasePath_pc, file);
+    stringFromPgm(g_PgmWateringLogHuman_pc, file);
+    File logFile = FileSystem.open(file.c_str(), FILE_APPEND);
+    if (logFile && g_Log_st.Index_i < g_LogSize_ic) {
+      for (int k = 0; k < g_Log_st.Index_i; ++k) {
+        String logEntry = "";
+        logEntry += g_Log_st.Entry_pst[k].TotalTime_l;
+        logEntry += ", ";
+        for (int Channel_i=0; Channel_i < g_NumPlants_ic; ++Channel_i) {
+          stringFromPgm(g_PgmChannel_pc, logEntry);
+          logEntry += Channel_i;
+          logEntry += ": ";
+          uint16_t data_ui16 = g_Log_st.Entry_pst[k].Data_pui16[Channel_i];
+          int sensor_i = (int)(data_ui16 & 0xFFFU);
+          ModeType mode_t = (ModeType)(data_ui16 >> 12);
+          switch(mode_t) {
+            case modePumpReady:
+              stringFromPgm(g_PgmM1_pc, logEntry);
+              break;
+            case modePumpOn:
+              stringFromPgm(g_PgmM2_pc, logEntry);
+              break;
+            case modePumpOff:
+              stringFromPgm(g_PgmM3_pc, logEntry);
+              break;
+            default: // modePumpError
+              stringFromPgm(g_PgmM4_pc, logEntry);
+              break;
+          }
+          logEntry += ", ";
+          logEntry += sensor_i;
+          logEntry += ", ";
+        }
+        logFile.println(logEntry);
+      }
+      logFile.close();
+    }
+  }
+  { // mashine readable version
+    String file="";
+    stringFromPgm(g_PgmBasePath_pc, file);
+    stringFromPgm(g_PgmWateringLog_pc, file);
+    File logFile = FileSystem.open(file.c_str(), FILE_APPEND);
+    if (logFile && g_Log_st.Index_i < g_LogSize_ic) {
+      for (int k = 0; k < g_Log_st.Index_i; ++k) {
+        String logEntry = "";
+        logEntry += g_Log_st.Entry_pst[k].TotalTime_l;
+        logEntry += ",";
+        for (int Channel_i=0; Channel_i < g_NumPlants_ic; ++Channel_i) {
+          uint16_t data_ui16 = g_Log_st.Entry_pst[k].Data_pui16[Channel_i];
+          int sensor_i = (int)(data_ui16 & 0xFFFU);
+          logEntry += sensor_i;
+          if (Channel_i + 1 < g_NumPlants_ic) {
+            logEntry += ",";
+          }
+        }
+        logFile.println(logEntry);
+      }
+      logFile.close();
+       // reset index of log
+      g_Log_st.Index_i = 0;
+    }
+  }
+}
+
+
+//******************************************************************************************
+//  write threshold values to SD card
+//******************************************************************************************
+void writeThresholdSD()
+{
+  { // human readable version
+    String file="";
+    stringFromPgm(g_PgmBasePath_pc, file);
+    stringFromPgm(g_PgmWateringThresholdHuman_pc, file);
+    FileSystem.remove(file.c_str());
+    File thresholdFile = FileSystem.open(file.c_str(), FILE_APPEND);
+    if (thresholdFile) {
+      String entry="";
+      // print time and threshold values
+      getTimeStamp(entry);
+      thresholdFile.println(entry);
+      entry="";
+      stringFromPgm(g_PgmTime_pc, entry);
+      entry += g_TotalTime_l;
+      thresholdFile.println(entry);
+      entry="";
+      for (int Channel_i = 0; Channel_i < g_NumPlants_ic; ++Channel_i) {
+        entry="Channel: ";
+        entry += Channel_i;
+        thresholdFile.println(entry);
+        entry="";
+        stringFromPgm(g_PgmS1_pc, entry);
+        entry += g_Plants_pst[Channel_i].ThresholdLow_i;
+        thresholdFile.println(entry);
+        entry="";
+        stringFromPgm(g_PgmS2_pc, entry);
+        entry += g_Plants_pst[Channel_i].ThresholdHigh_i;
+        thresholdFile.println(entry);
+        entry="";
+        stringFromPgm(g_PgmS3_pc, entry);
+        entry += g_Plants_pst[Channel_i].ThresholdExpectedChange_i;
+        thresholdFile.println(entry);
+        entry="";
+        stringFromPgm(g_PgmT1_pc, entry);
+        entry += g_Plants_pst[Channel_i].TimeOutPumpOn_l;
+        thresholdFile.println(entry);
+        entry="";
+        stringFromPgm(g_PgmT2_pc, entry);
+        entry +=g_Plants_pst[Channel_i].TimePumpOnMax_l;
+        thresholdFile.println(entry);
+        entry="";
+        stringFromPgm(g_PgmT3_pc, entry);
+        entry += g_Plants_pst[Channel_i].TimeWait_l;
+        thresholdFile.println(entry);
+        entry="";
+        stringFromPgm(g_PgmT4_pc, entry);
+        entry += g_Plants_pst[Channel_i].TimeOutPumpOff_l;
+        thresholdFile.println(entry);
+        entry="";
+        stringFromPgm(g_PgmT5_pc, entry);
+        entry += g_Plants_pst[Channel_i].TimeOutErrorState_l;
+        thresholdFile.println(entry);
+        thresholdFile.println("");
+      }
+      thresholdFile.close();
+      pushToServer(g_PgmWateringThresholdHuman_pc);
+    }
+  }
+  { // mashine readable version
+    String file="";
+    stringFromPgm(g_PgmBasePath_pc, file);
+    stringFromPgm(g_PgmWateringThreshold_pc, file);
+    FileSystem.remove(file.c_str());
+    File thresholdFile = FileSystem.open(file.c_str(), FILE_APPEND);
+    if (thresholdFile) {
+      String entry="";
+      for (int Channel_i = 0; Channel_i < g_NumPlants_ic; ++Channel_i) {
+        entry="";
+        entry += g_Plants_pst[Channel_i].ThresholdLow_i;
+        thresholdFile.println(entry);
+        entry="";
+        entry += g_Plants_pst[Channel_i].ThresholdHigh_i;
+        thresholdFile.println(entry);
+        entry="";
+        entry += g_Plants_pst[Channel_i].ThresholdExpectedChange_i;
+        thresholdFile.println(entry);
+        entry="";
+        entry += g_Plants_pst[Channel_i].TimeOutPumpOn_l;
+        thresholdFile.println(entry);
+        entry="";
+        entry +=g_Plants_pst[Channel_i].TimePumpOnMax_l;
+        thresholdFile.println(entry);
+        entry="";
+        entry += g_Plants_pst[Channel_i].TimeWait_l;
+        thresholdFile.println(entry);
+        entry="";
+        entry += g_Plants_pst[Channel_i].TimeOutPumpOff_l;
+        thresholdFile.println(entry);
+        entry="";
+        entry += g_Plants_pst[Channel_i].TimeOutErrorState_l;
+        thresholdFile.println(entry);
+      }
+      thresholdFile.close();
+      pushToServer(g_PgmWateringThreshold_pc);
+    }
+  }
+}
+
+
+//******************************************************************************************
+//  read threshold values from SD card
+//******************************************************************************************
+void readThresholdSD()
+{
+  String file="";
+  stringFromPgm(g_PgmBasePath_pc, file);
+  stringFromPgm(g_PgmWateringThreshold_pc, file);
+  File thresholdFile = FileSystem.open(file.c_str(), FILE_READ);
+  if (thresholdFile) {
+    int Channel_i = 0;
+    int Index_i = 0;
+    String s="";
+    while(thresholdFile.available() && Channel_i < g_NumPlants_ic) {
+      char c = thresholdFile.read();
+      if ('\n' != c) {
+        s += String(c);
+      } else {
+        // newline
+        long value = (long)s.toInt();
+        s = "";
+        switch (Index_i) {
+          case 0:
+            g_Plants_pst[Channel_i].ThresholdLow_i = (int)value;
+            break;
+          case 1:
+            g_Plants_pst[Channel_i].ThresholdHigh_i = (int)value;
+            break;
+          case 2:
+            g_Plants_pst[Channel_i].ThresholdExpectedChange_i = (int)value;
+            break;
+          case 3:
+            g_Plants_pst[Channel_i].TimeOutPumpOn_l = value;
+            break;
+          case 4:
+            g_Plants_pst[Channel_i].TimePumpOnMax_l = value;
+            break;
+          case 5:
+            g_Plants_pst[Channel_i].TimeWait_l = value;
+            break;
+          case 6:
+            g_Plants_pst[Channel_i].TimeOutPumpOff_l = value;
+            break;
+          case 7:
+            g_Plants_pst[Channel_i].TimeOutErrorState_l = value;
+            break;
+          default:
+            break;
+        }
+        if (Index_i < 7) {
+          ++Index_i;
+        } else {
+          Index_i = 0;
+          ++Channel_i;
+        }
+      }
+    }
+    thresholdFile.close();    
+  } else {
+    defaultThreshold();
+  }
+}
+
+
+//******************************************************************************************
+//  push to server
+//******************************************************************************************
+void pushToServer(const char* file_pc)
+{
+  String file = "";
+  stringFromPgm(file_pc, file);
+  pushToServer(file);
+}
+
+
+//******************************************************************************************
+//  push to server
+//******************************************************************************************
+void pushToServer(const String& file)
+{
+  String cmd="";
+  stringFromPgm(g_PgmBasePath_pc, cmd);
+  stringFromPgm(g_PgmPushToServerScript_pc, cmd);
+  cmd += " ";
+  cmd += file;
+  Process push;
+  push.runShellCommand(cmd);
+  Serial.println(cmd);
+}
+
+
+//******************************************************************************************
+//  getTimeStamp
+//******************************************************************************************
+void getTimeStamp(String& value) {
+  Process timeProc;
+  timeProc.begin("date");
+  timeProc.addParameter("+%Y.%m.%d_%H-%M-%S");
+  timeProc.run();
+
+  // read output of "date" command
+  while (timeProc.available() > 0) {
+    char c = timeProc.read();
+    if (c != '\n') {
+      value += c;
+    }
   }
 }

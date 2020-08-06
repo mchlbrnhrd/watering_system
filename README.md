@@ -1,21 +1,26 @@
 # watering system
 Automatic irrigation of plants on vacation.
 
-For this self watering system you need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit".
+For this self watering system you need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit". It works with Arduino Nano. With Arduino Yún log files are stored on a SD card. Also settings like threshold values and log files will be pushed
+to a user defined server. An example HTML file evaluates the log file.
 
 ![watering system](doc/watering_system_small.jpg)
 
-This software supports
+This software supports:
 * start pump when moisture of soil is too low
 * start pump after time out (e.g. after one day)
 * stop pump when moisture is high enough or after a timeout (e.g. at least after 20 seconds)
-* interact via terminal (seriell monitor of arduino IDE)
+* interact via terminal (seriell monitor of arduino IDE):
   - check sensor values
   - start and stop pump manualy
   - change values of variables during runtime (thresholds, time durations)
   - activate debug mode: print sensor values continously and internal states of software.
   - get log data (sensor data will be recorded every 12 hours)
   - start auto calibraton
+* Internet of Things (IoT) with Arduino Yún:
+  - save log files and settings on SD card
+  - push files to a server
+  - evaluate log files and show graphically from remote
 
 # hardware setup
 Connect digital outputs of arduino (microcontroller) with relais module inputs. Connect analog inputs of arduino with capacitive soil moisture sensors. Connect pumps with relais module switches and power supply. Make sure to use correct voltages for arduino board and pump.
@@ -32,9 +37,10 @@ Type 'h' to show help.
 * __m__ _manual mode_: switch on and off each pump manually
 * __l__ _read log_: read log values of each channel
 * __a__ _auto calibration_: wizard to set threshold values
+* __w__ _write settings_: write settings to SD card and push them to server
 * __c__ _cancel_: go back to main software functionality from each menu point
 
-_Hint_: Connect reset pin with 10 k Ohm pull up resistor and 10 nF capacitor against ground to avoid reset when connecting computer via USB cable to running system. Otherwise log file will be cleared.
+_Hint_: Connect reset pin with 10 k Ohm pull up resistor and 10 nF capacitor against ground to avoid reset when connecting computer via USB cable to running system. Otherwise internal log data will be cleared. When using Arduino Yún this is not necessary: log files will be stored on SD card and on server.
 
 ## change values
 Type 't' and information of all channels is printed. Type channel number to edit values for the specific channel. To change _threshold low_ for example type 'S1' and afterwards type new value. With 'c' the main program is continued. Type again 't' to check the values and 'c' to continue again.
@@ -58,3 +64,11 @@ States/Modes:
 * M2: pump is on
 * M3: pump is off
 * M4: pump is in error state
+
+# setup for Arduino Yún
+A micro SD card is required for saving data and an FTP server access for pushing data to server and evaluation.
+
+The location will be _/mnt/sd/watering_. Make sure this folder will exists.
+
+Copy _pushToServer.sh_ script to Linux system of Arduino Yún and modify it. (FTP server name with root path, user name and password).
+Upload _evaluation.html_ to the server for evaluating data.
