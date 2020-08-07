@@ -11,8 +11,11 @@
     <a href="watering_threshold_human.txt">watering_threshold_human.txt</a>
     <a href="dates.txt">dates.txt</a> -> DATEwatering_log_human.txt
   </tt></p>
-  <canvas id="EvaluationCanvas" width="1000" height="500" style="border:1px solid #d0d0d0;">
+  <canvas id="EvaluationCanvas" width="800" height="500" style="border:1px solid #d0d0d0;">
      Your browser does not support the HTML5 canvas tag.</canvas>
+     <br>
+  <canvas id="LegendCanvas" width="200" height="100" style="border:1px solid #d0d0d0;">
+        Your browser does not support the HTML5 canvas tag.</canvas>
 
   <script>
     function loadFile(filePathName) {
@@ -25,6 +28,11 @@
       }
      return content;
     }
+
+    // data format:
+    // x0,y_a0,y_b0,y_c0,y_d0
+    // x1,y_a1,y_b1,y_c1,y_d1
+    // x2,y_a2,y_b2,y_c2,y_d2
 
     var logData = loadFile("watering_log.txt");
     while (logData.indexOf("\r") >= 0) {
@@ -39,6 +47,8 @@
 
     var c = document.getElementById("EvaluationCanvas");
     var ctx = c.getContext("2d");
+    var c_legend = document.getElementById("LegendCanvas");
+    var ctx_legend = c_legend.getContext("2d");
 
     // read all data lines and find out minimum and maximum values for scaling
     for (var i = 0; i < dataLines.length; i++) {
@@ -57,11 +67,13 @@
         }
         for (var k = 1; k < curLineSplit.length; k++) {
           var y=parseInt(curLineSplit[k]);
-          if (y > max_y) {
-            max_y = y;
-          }
-          if (y < min_y) {
-            min_y = y;
+          if (y > 0) {
+            if (y > max_y) {
+              max_y = y;
+            }
+            if (y < min_y) {
+              min_y = y;
+            }
           }
         }
       }
@@ -70,20 +82,25 @@
     for (var k=1; k < numColumns; k++) {
       switch (k) {
         case 1:
-          ctx.strokeStyle = "#AA0000";
+          ctx.strokeStyle = "#0096E6";
           break;
         case 2:
-          ctx.strokeStyle = "#00AA00";
+          ctx.strokeStyle = "#FA1E00";
           break;
         case 3:
-          ctx.strokeStyle = "#0000AA";
+          ctx.strokeStyle = "#64C83C";
           break;
         case 4:
-          ctx.strokeStyle = "#FF00AA";
+          ctx.strokeStyle = "#F0D000";
           break;
         default:
           ctx.strokeStyle = "#000000";
       }
+      ctx_legend.strokeStyle = ctx.strokeStyle;
+      ctx_legend.beginPath();
+      ctx_legend.moveTo(10, k*20);
+      ctx_legend.lineTo(190, k*20);
+      ctx_legend.stroke();
 
       ctx.beginPath();
       var first = 1;
@@ -91,13 +108,16 @@
         var curLine = dataLines[i];
         var curLineSplit = curLine.split(",");
         if (numColumns == curLineSplit.length) {
-          var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*1000;
-          var y=(parseInt(curLineSplit[k])-min_y)/(max_y-min_y)*500;
-          if (0 != first) {
-            ctx.moveTo(x,y);
-            first=0;
-          } else {
-            ctx.lineTo(x,y);
+          var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*800;
+          var y=parseInt(curLineSplit[k]);
+          if (y > 0) {
+            var y=(y-min_y)/(max_y-min_y)*500;
+            if (0 != first) {
+              ctx.moveTo(x,y);
+              first=0;
+            } else {
+              ctx.lineTo(x,y);
+            }
           }
         }
       }

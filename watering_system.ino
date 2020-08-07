@@ -1,6 +1,7 @@
 // Watering system by Michael Bernhard; 2020.04.23
 
 #include <FileIO.h>
+#include <Console.h>
 
 //******************************************************************************************
 //******************************************************************************************
@@ -12,11 +13,11 @@
 const int g_NumPlants_ic = 4;
 
 // pin connection of sensor and pump (relais module) to arduino board
-const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A3};
+const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A5};
 const int g_PumpPin_pic[g_NumPlants_ic] = {2, 3, 4, 5};
 
 const int g_LogSize_ic = 40; // number of log entries
-const long g_LogInterval_lc = 60L*60L; // log interval 1 h
+const long g_LogInterval_lc = 1*60L;//60L*60L; // log interval 1 h
 
 // store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
@@ -142,6 +143,7 @@ void setup()
   for(int i=0; i < g_NumPlants_ic; ++i) {
     pinMode(g_SensorPin_pic[i], INPUT);
     pinMode(g_PumpPin_pic[i], OUTPUT);
+    pumpOff(i);
   }
   
   for (int k = 0; k < 5; ++k)
@@ -152,7 +154,8 @@ void setup()
     delay(30);
   }
   Bridge.begin();
-  Serial.begin(9600);
+  // Serial.begin(9600);
+  Console.begin();
   FileSystem.begin();
   serialPrintlnPgm(g_PgmWatering_pc);
   delay(1000);
@@ -203,9 +206,9 @@ void loop()
   }
 
   // check if key is pressed
-  while (Serial.available() > 0) {
+  while (Console.available() > 0) {
     TIMSK1 &=~(1 << OCIE1A);
-    String Key_s = Serial.readString();
+    String Key_s = Console.readString();
     Key_s.trim();
     if (Key_s.equals("h") || Key_s.equals("H")) {
       serialPrintlnPgm(g_PgmHelp_pc);
@@ -222,7 +225,7 @@ void loop()
     } else if (Key_s.equals("d") || Key_s.equals("D")) {
       g_DebugMode_bl = !g_DebugMode_bl;
       serialPrintPgm(g_PgmDebugMode_pc);
-      Serial.println(g_DebugMode_bl ? "on" : "off");
+      Console.println(g_DebugMode_bl ? "on" : "off");
     } else if (Key_s.equals("m") || Key_s.equals("M")) {
       manualMode();
     } else if (Key_s.equals("l") || Key_s.equals("L")) {
@@ -279,6 +282,7 @@ void reset()
   cmd += date;
   stringFromPgm(g_PgmWateringLog_pc, cmd);
   proc.runShellCommand(cmd);
+  Console.println(cmd);
   delay(300);
   cmd = date;
   stringFromPgm(g_PgmWateringLog_pc, cmd);
@@ -292,6 +296,7 @@ void reset()
   cmd += date;
   stringFromPgm(g_PgmWateringLogHuman_pc, cmd);
   proc.runShellCommand(cmd);
+  Console.println(cmd);
   delay(300);
   cmd = date;
   stringFromPgm(g_PgmWateringLogHuman_pc, cmd);
@@ -379,13 +384,13 @@ void pumpControl()
       if (g_Plants_pst[i].Sensor_i > g_Plants_pst[i].ThresholdHigh_i) {
         g_Plants_pst[i].Mode_enm = modePumpOn;
         if (g_DebugMode_bl) {
-          Serial.print(i);
+          Console.print(i);
           serialPrintlnPgm(g_PgmDebugR2_pc);
         }
       } else if (g_Plants_pst[i].CurrTime_l > g_Plants_pst[i].TimeOutPumpOff_l) {
          g_Plants_pst[i].Mode_enm = modePumpOn;
          printChannel(i);
-         Serial.print(i);
+         Console.print(i);
          serialPrintlnPgm(g_PgmErrR6_pc);
       }
       if (modePumpOn == g_Plants_pst[i].Mode_enm) {
@@ -400,7 +405,7 @@ void pumpControl()
         if (g_Plants_pst[i].Sensor_i > g_Plants_pst[i].ThresholdExpectedChange_i) {
           g_Plants_pst[i].Mode_enm = modePumpError;
           pumpOff(i);
-          Serial.print(i);
+          Console.print(i);
           serialPrintlnPgm(g_PgmErrR1_pc);
           TimerReset_bl = true;
         }
@@ -409,7 +414,7 @@ void pumpControl()
           pumpOff(i);
           TimerReset_bl = true;
           if (g_DebugMode_bl) {
-            Serial.print(i);
+            Console.print(i);
             serialPrintlnPgm(g_PgmDebugR3_pc);
           }
         } else if (g_Plants_pst[i].CurrTime_l  > g_Plants_pst[i].TimePumpOnMax_l) {
@@ -417,7 +422,7 @@ void pumpControl()
           pumpOff(i);
           TimerReset_bl = true;
           if (g_DebugMode_bl) {
-            Serial.print(i);
+            Console.print(i);
             serialPrintlnPgm(g_PgmDebugR4_pc);
           }
         }
@@ -430,7 +435,7 @@ void pumpControl()
         g_Plants_pst[i].Mode_enm = modePumpReady;
         TimerReset_bl = true;
         if (g_DebugMode_bl) {
-          Serial.print(i);
+          Console.print(i);
           serialPrintlnPgm(g_PgmDebugR5_pc);
         }
       }
@@ -441,7 +446,7 @@ void pumpControl()
       if (g_Plants_pst[i].CurrTime_l > g_Plants_pst[i].TimeOutErrorState_l) {
         g_Plants_pst[i].Mode_enm = modePumpReady;
         TimerReset_bl = true;
-        Serial.print(i);
+        Console.print(i);
         serialPrintlnPgm(g_PgmInfoR7_pc);
       }
     }
@@ -462,10 +467,10 @@ void terminal()
   bool Finished_bl=false;
   while(!Finished_bl) {
     serialPrintPgm(g_PgmChannel_pc);
-    while (Serial.available() == 0);
-    String Key_s = Serial.readString();
+    while (Console.available() == 0);
+    String Key_s = Console.readString();
     Key_s.trim();
-    Serial.println(Key_s);
+    Console.println(Key_s);
     String Command_s = "";
     int Channel_i = 0;
     if (Key_s.equals("c") || Key_s.equals("C")) {
@@ -473,20 +478,20 @@ void terminal()
     } else {
       Channel_i = Key_s.toInt();
       serialPrintPgm(g_PgmCommand_pc);
-      while (Serial.available() == 0);
-      Command_s = Serial.readString();
+      while (Console.available() == 0);
+      Command_s = Console.readString();
       Command_s.trim();
-      Serial.println(Command_s);
+      Console.println(Command_s);
      if (Command_s.equals("c") || Command_s.equals("C")) {
         Finished_bl = true;
       }
     }
     if (!Finished_bl) {
       serialPrintPgm(g_PgmValue_pc);
-      while (Serial.available() == 0);
-      Key_s = Serial.readString();
+      while (Console.available() == 0);
+      Key_s = Console.readString();
       Key_s.trim();
-      Serial.println(Key_s);
+      Console.println(Key_s);
       long Value_l = Key_s.toInt();
       if (Command_s.equals("S1")) {
         g_Plants_pst[Channel_i].ThresholdLow_i = (int)Value_l;
@@ -522,10 +527,10 @@ void manualMode()
   bool Finished_bl=false;
  
   serialPrintPgm(g_PgmChannel_pc);
-  while (Serial.available() == 0);
-  String Key_s = Serial.readString();
+  while (Console.available() == 0);
+  String Key_s = Console.readString();
   Key_s.trim();
-  Serial.println(Key_s);
+  Console.println(Key_s);
   int Channel_i = 0;
   if (Key_s.equals("c") || Key_s.equals("C")) {
     Finished_bl = true;
@@ -534,21 +539,21 @@ void manualMode()
     serialPrintlnPgm(g_PgmManual_pc);
   }
   while(!Finished_bl && (Channel_i < g_NumPlants_ic)) {
-    if (Serial.available() > 0) {
-      Key_s = Serial.readString();
+    if (Console.available() > 0) {
+      Key_s = Console.readString();
       Key_s.trim();
-      Serial.print("Pump ");
+      Console.print("Pump ");
       if (Key_s.equals("c") || Key_s.equals("C")) {
         Finished_bl = true;
       } else if (Key_s.equals("1") || Key_s.equals("1")) {
-        Serial.println("on");
+        Console.println("on");
         // save current mode, change to pumpOn for log and recover mode
         ModeType ModeSave_enm = g_Plants_pst[Channel_i].Mode_enm;
         g_Plants_pst[Channel_i].Mode_enm = modePumpOn;
         pumpOn(Channel_i); // pump on
         g_Plants_pst[Channel_i].Mode_enm = ModeSave_enm;
       } else {
-        Serial.println("off");
+        Console.println("off");
         // save current mode, change to pumpOff for log and recover mode
         ModeType ModeSave_enm = g_Plants_pst[Channel_i].Mode_enm;
         g_Plants_pst[Channel_i].Mode_enm = modePumpOff;
@@ -575,10 +580,10 @@ void autoCalibration()
 {
   bool Cancel_bl = false;
   serialPrintPgm(g_PgmChannel_pc);
-  while (Serial.available() == 0);
-  String Key_s = Serial.readString();
+  while (Console.available() == 0);
+  String Key_s = Console.readString();
   Key_s.trim();
-  Serial.println(Key_s);
+  Console.println(Key_s);
   int Channel_i = 0;
   long ThresholdLow_l = 0;
   long ThresholdHigh_l = 0;
@@ -595,8 +600,8 @@ void autoCalibration()
     }
   }
   if (!Cancel_bl) {
-    while (Serial.available() == 0);
-    Key_s = Serial.readString();
+    while (Console.available() == 0);
+    Key_s = Console.readString();
     Key_s.trim();
     if (Key_s.equals("1") ) {
       ThresholdHigh_l = analogRead(g_SensorPin_pic[Channel_i]);
@@ -608,8 +613,8 @@ void autoCalibration()
     serialPrintlnPgm(g_PgmAutoCalibration1_pc);
     g_Plants_pst[Channel_i].Mode_enm = modePumpReady;
     pumpOn(Channel_i);
-    while (Serial.available() == 0);
-    Key_s = Serial.readString();
+    while (Console.available() == 0);
+    Key_s = Console.readString();
     Key_s.trim();
     if (Key_s.equals("0") ) {
       g_Plants_pst[Channel_i].Mode_enm = modePumpReady;
@@ -625,7 +630,7 @@ void autoCalibration()
     g_Plants_pst[Channel_i].ThresholdLow_i = (int)ThresholdLow_l;
     g_Plants_pst[Channel_i].ThresholdHigh_i = (int)ThresholdHigh_l;
     // expected change close to threshold high
-    g_Plants_pst[Channel_i].ThresholdExpectedChange_i = (ThresholdHigh_l*98L + ThresholdLow_l*2L)/100L;
+    g_Plants_pst[Channel_i].ThresholdExpectedChange_i = 2250; //(ThresholdHigh_l*98L + ThresholdLow_l*2L)/100L;
   }
   writeThresholdSD();
   serialPrintlnPgm(g_PgmContinue_pc);
@@ -639,12 +644,12 @@ void autoCalibration()
 void printShortInfo()
 {
   serialPrintPgm(g_PgmTime_pc);
-  Serial.println(g_TotalTime_l);
+  Console.println(g_TotalTime_l);
   for (int i=0; i < g_NumPlants_ic; ++i) {
     serialPrintPgm(g_PgmSensor_pc);
-    Serial.print(i);
-    Serial.print(": ");
-    Serial.println(g_Plants_pst[i].Sensor_i);
+    Console.print(i);
+    Console.print(": ");
+    Console.println(g_Plants_pst[i].Sensor_i);
   }
 }
 
@@ -656,9 +661,9 @@ void printChannel(int Channel_i)
 {
   if ((0 <= Channel_i) && (g_NumPlants_ic > Channel_i)) {
     serialPrintPgm(g_PgmSensor_pc);
-    Serial.print(Channel_i);
-    Serial.print(": ");
-    Serial.println(g_Plants_pst[Channel_i].Sensor_i);
+    Console.print(Channel_i);
+    Console.print(": ");
+    Console.println(g_Plants_pst[Channel_i].Sensor_i);
     switch(g_Plants_pst[Channel_i].Mode_enm) {
       case modePumpReady:
         serialPrintlnPgm(g_PgmM1_pc);
@@ -674,26 +679,26 @@ void printChannel(int Channel_i)
         break;
     }
     serialPrintPgm(g_PgmC1_pc);
-    Serial.println(g_Plants_pst[Channel_i].CurrTime_l);
+    Console.println(g_Plants_pst[Channel_i].CurrTime_l);
     
     serialPrintPgm(g_PgmS1_pc);
-    Serial.println(g_Plants_pst[Channel_i].ThresholdLow_i);
+    Console.println(g_Plants_pst[Channel_i].ThresholdLow_i);
     serialPrintPgm(g_PgmS2_pc);
-    Serial.println(g_Plants_pst[Channel_i].ThresholdHigh_i);
+    Console.println(g_Plants_pst[Channel_i].ThresholdHigh_i);
     serialPrintPgm(g_PgmS3_pc);
-    Serial.println(g_Plants_pst[Channel_i].ThresholdExpectedChange_i);
+    Console.println(g_Plants_pst[Channel_i].ThresholdExpectedChange_i);
 
     serialPrintPgm(g_PgmT1_pc);
-    Serial.println(g_Plants_pst[Channel_i].TimeOutPumpOn_l); 
+    Console.println(g_Plants_pst[Channel_i].TimeOutPumpOn_l); 
     serialPrintPgm(g_PgmT2_pc);
-    Serial.println(g_Plants_pst[Channel_i].TimePumpOnMax_l);
+    Console.println(g_Plants_pst[Channel_i].TimePumpOnMax_l);
     serialPrintPgm(g_PgmT3_pc);
-    Serial.println(g_Plants_pst[Channel_i].TimeWait_l);
+    Console.println(g_Plants_pst[Channel_i].TimeWait_l);
     serialPrintPgm(g_PgmT4_pc);
-    Serial.println(g_Plants_pst[Channel_i].TimeOutPumpOff_l);
+    Console.println(g_Plants_pst[Channel_i].TimeOutPumpOff_l);
     serialPrintPgm(g_PgmT5_pc);
-    Serial.println(g_Plants_pst[Channel_i].TimeOutErrorState_l);
-    Serial.println("");
+    Console.println(g_Plants_pst[Channel_i].TimeOutErrorState_l);
+    Console.println("");
   }
 }
 
@@ -719,14 +724,14 @@ void printLog()
   serialPrintlnPgm(g_PgmLogStart_pc);
   // print time and threshold values
   serialPrintPgm(g_PgmTime_pc);
-  Serial.println(g_TotalTime_l);
+  Console.println(g_TotalTime_l);
   for (int Channel_i = 0; Channel_i < g_NumPlants_ic; ++Channel_i) {
     serialPrintPgm(g_PgmS1_pc);
-    Serial.println(g_Plants_pst[Channel_i].ThresholdLow_i);
+    Console.println(g_Plants_pst[Channel_i].ThresholdLow_i);
     serialPrintPgm(g_PgmS2_pc);
-    Serial.println(g_Plants_pst[Channel_i].ThresholdHigh_i);
+    Console.println(g_Plants_pst[Channel_i].ThresholdHigh_i);
     serialPrintPgm(g_PgmS3_pc);
-    Serial.println(g_Plants_pst[Channel_i].ThresholdExpectedChange_i);
+    Console.println(g_Plants_pst[Channel_i].ThresholdExpectedChange_i);
   }
 
   // print log data
@@ -752,12 +757,12 @@ void printLog()
 void printLogEntry(int Index_i)
 {
   if ((0 <= Index_i) && (g_LogSize_ic > Index_i)) {
-    Serial.print(g_Log_st.Entry_pst[Index_i].TotalTime_l);
-    Serial.print(", ");
+    Console.print(g_Log_st.Entry_pst[Index_i].TotalTime_l);
+    Console.print(", ");
     for (int Channel_i=0; Channel_i < g_NumPlants_ic; ++Channel_i) {
       serialPrintPgm(g_PgmChannel_pc);
-      Serial.print(Channel_i);
-      Serial.print(": ");
+      Console.print(Channel_i);
+      Console.print(": ");
       uint16_t data_ui16 = g_Log_st.Entry_pst[Index_i].Data_pui16[Channel_i];
       int sensor_i = (int)(data_ui16 & 0xFFFU);
       ModeType mode_t = (ModeType)(data_ui16 >> 12);
@@ -775,11 +780,11 @@ void printLogEntry(int Index_i)
           serialPrintPgm(g_PgmM4_pc);
           break;
       }
-      Serial.print(", ");
-      Serial.print(sensor_i);
-      Serial.print(", ");
+      Console.print(", ");
+      Console.print(sensor_i);
+      Console.print(", ");
     }
-    Serial.println("");
+    Console.println("");
   }
 }
 
@@ -830,7 +835,7 @@ void pumpOff(int Channel_i)
 void serialPrintlnPgm(const char* string_pc) {
   String msg="";
   stringFromPgm(string_pc, msg);
-  Serial.println(msg);
+  Console.println(msg);
 }
 
 
@@ -840,7 +845,7 @@ void serialPrintlnPgm(const char* string_pc) {
 void serialPrintPgm(const char* string_pc) {
   String msg="";
   stringFromPgm(string_pc, msg);
-  Serial.print(msg);
+  Console.print(msg);
 }
 
 
@@ -1140,7 +1145,7 @@ void pushToServer(const String& file)
   cmd += file;
   Process push;
   push.runShellCommand(cmd);
-  Serial.println(cmd);
+  Console.println(cmd);
 }
 
 
