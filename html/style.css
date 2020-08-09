@@ -1,0 +1,48 @@
+body {
+  background-color: white;
+}
+
+h1 {
+  color: #707070;
+  text-align: center;
+}
+
+p {
+  font-family: verdana;
+  color:#606060;
+}
+
+td {
+  font-family: verdana;
+  color:#606060;
+}
+
+table{
+  max-width: 700px;
+}
+
+/* unvisited link */
+a:link {
+/*  color: #000070;*/
+  color: #000C0;
+  text-decoration: none;
+}
+
+/* visited link */
+a:visited {
+/*  color: #000060;*/
+  color: #0000B0;
+  text-decoration: none;
+}
+
+/* mouse over link */
+a:hover {
+  color: #000090;
+  text-decoration: underline;
+}
+
+/* selected link */
+a:active {
+  color: #0000a0;
+  text-decoration: underline;
+}
