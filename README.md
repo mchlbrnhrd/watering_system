@@ -1,4 +1,4 @@
-# watering system
+# IoT watering system
 Automatic irrigation of plants on vacation.
 
 For this self watering system you need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit". It works with Arduino Nano. With Arduino Yún log files are stored on a SD card. Also settings like threshold values and log files will be pushed
@@ -27,7 +27,7 @@ Connect digital outputs of arduino (microcontroller) with relais module inputs. 
 
 ![hardware setup](doc/scetch_small.jpg)
 
-# Terminal
+# terminal
 Type 'h' to show help.
 * __d__ _debug_: Print continously debug informations
 * __s__ _soft reset_ : reset timer and switch off pump
@@ -68,7 +68,7 @@ States/Modes:
 # setup for Arduino Yún
 A micro SD card is required for saving data and an FTP server access for pushing data to server and evaluation.
 
-The location will be _/mnt/sd/watering_. Make sure this folder will exists.
+The location will be _/mnt/sd/watering_. Make sure this folder does exists.
 
 Copy _pushToServer.sh_ script to Linux system of Arduino Yún and modify it. (FTP server name with root path, user name and password).
 Upload _evaluation.html_ to the server for evaluating data.

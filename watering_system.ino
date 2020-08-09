@@ -17,7 +17,7 @@ const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A5};
 const int g_PumpPin_pic[g_NumPlants_ic] = {2, 3, 4, 5};
 
 const int g_LogSize_ic = 40; // number of log entries
-const long g_LogInterval_lc = 1*60L;//60L*60L; // log interval 1 h
+const long g_LogInterval_lc = 10*60L;//60L*60L; // log interval 1 h
 
 // store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
@@ -127,7 +127,6 @@ long g_LogTimer_l = 0;
 bool g_LogDone_bl = false;
 
 
-
 //******************************************************************************************
 //******************************************************************************************
 // functions
@@ -153,6 +152,11 @@ void setup()
     digitalWrite(LED_BUILTIN, LOW);
     delay(30);
   }
+  // wait 3 minutes
+  for (int k=0; k < 60*3; ++k) {
+    delay(1000);
+  }
+  
   Bridge.begin();
   // Serial.begin(9600);
   Console.begin();
@@ -282,6 +286,8 @@ void reset()
   cmd += date;
   stringFromPgm(g_PgmWateringLog_pc, cmd);
   proc.runShellCommand(cmd);
+  while(proc.running());
+  delay(300);
   Console.println(cmd);
   delay(300);
   cmd = date;
@@ -296,6 +302,8 @@ void reset()
   cmd += date;
   stringFromPgm(g_PgmWateringLogHuman_pc, cmd);
   proc.runShellCommand(cmd);
+  while(proc.running());
+  delay(300);
   Console.println(cmd);
   delay(300);
   cmd = date;
@@ -466,7 +474,7 @@ void terminal()
   printInfo();
   bool Finished_bl=false;
   while(!Finished_bl) {
-    serialPrintPgm(g_PgmChannel_pc);
+    serialPrintlnPgm(g_PgmChannel_pc);
     while (Console.available() == 0);
     String Key_s = Console.readString();
     Key_s.trim();
@@ -477,7 +485,7 @@ void terminal()
       Finished_bl = true;
     } else {
       Channel_i = Key_s.toInt();
-      serialPrintPgm(g_PgmCommand_pc);
+      serialPrintlnPgm(g_PgmCommand_pc);
       while (Console.available() == 0);
       Command_s = Console.readString();
       Command_s.trim();
@@ -487,7 +495,7 @@ void terminal()
       }
     }
     if (!Finished_bl) {
-      serialPrintPgm(g_PgmValue_pc);
+      serialPrintlnPgm(g_PgmValue_pc);
       while (Console.available() == 0);
       Key_s = Console.readString();
       Key_s.trim();
@@ -525,8 +533,9 @@ void terminal()
 void manualMode()
 {
   bool Finished_bl=false;
+  readSensor();
  
-  serialPrintPgm(g_PgmChannel_pc);
+  serialPrintlnPgm(g_PgmChannel_pc);
   while (Console.available() == 0);
   String Key_s = Console.readString();
   Key_s.trim();
@@ -579,7 +588,7 @@ void manualMode()
 void autoCalibration()
 {
   bool Cancel_bl = false;
-  serialPrintPgm(g_PgmChannel_pc);
+  serialPrintlnPgm(g_PgmChannel_pc);
   while (Console.available() == 0);
   String Key_s = Console.readString();
   Key_s.trim();
@@ -631,6 +640,7 @@ void autoCalibration()
     g_Plants_pst[Channel_i].ThresholdHigh_i = (int)ThresholdHigh_l;
     // expected change close to threshold high
     g_Plants_pst[Channel_i].ThresholdExpectedChange_i = 2250; //(ThresholdHigh_l*98L + ThresholdLow_l*2L)/100L;
+    printChannel(Channel_i);
   }
   writeThresholdSD();
   serialPrintlnPgm(g_PgmContinue_pc);
@@ -1145,6 +1155,7 @@ void pushToServer(const String& file)
   cmd += file;
   Process push;
   push.runShellCommand(cmd);
+  // while(proc.running());
   Console.println(cmd);
 }
 
