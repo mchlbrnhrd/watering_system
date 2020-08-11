@@ -17,7 +17,7 @@ const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A5};
 const int g_PumpPin_pic[g_NumPlants_ic] = {2, 3, 4, 5};
 
 const int g_LogSize_ic = 40; // number of log entries
-const long g_LogInterval_lc = 10*60L;//60L*60L; // log interval 1 h
+const long g_LogInterval_lc = 60L*60L; // log interval 1 h
 
 // store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
