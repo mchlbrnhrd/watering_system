@@ -1,7 +1,7 @@
 # IoT watering system
 Automatic irrigation of plants on vacation.
 
-For this self watering system you need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit". It works with Arduino Nano. With Arduino Yún log files are stored on a SD card. Also settings like threshold values and log files will be pushed
+For this self watering system you need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit". It works with Arduino Nano. With Arduino Yún settings and log files are stored on a SD card. Also settings like threshold values and log files will be pushed
 to a user defined server. An example HTML file evaluates the log file.
 
 ![watering system](doc/watering_system_small.jpg)
@@ -15,7 +15,7 @@ This software supports:
   - start and stop pump manualy
   - change values of variables during runtime (thresholds, time durations)
   - activate debug mode: print sensor values continously and internal states of software.
-  - get log data (sensor data will be recorded every 12 hours)
+  - get log data (sensor data will be recorded every hour)
   - start auto calibraton
 * Internet of Things (IoT) with Arduino Yún:
   - save log files and settings on SD card
@@ -47,6 +47,10 @@ Type 't' and information of all channels is printed. Type channel number to edit
 
 ## auto calibration
 Type 'a'. Afterwards type channel number. Make sure sensor is dry. Then type '1'. Pump is switched on. When watering is sufficient then type '0' to stop pump. The sensor values are taken to set the new threshold.
+
+# IoT
+![IoT principle](doc/scetch_iot_small.jpg)
+When using Arduino Yún the access to the Arduino board can be done in your WLAN environment. E.g. to setup the watering system like setting threshold values. Every hour log data are recorded and sent to a user defined server. So it is possible to check the watering system by remote using a mobile phone for example. The log data are stored in a human readable version and also a graphically evaluation can be shown on your mobile phone.
 
 # supported requirements
 This software supports following requirements:
