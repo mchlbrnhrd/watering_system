@@ -13,7 +13,7 @@
 const int g_NumPlants_ic = 4;
 
 // pin connection of sensor and pump (relais module) to arduino board
-const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A5};
+const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A3};
 const int g_PumpPin_pic[g_NumPlants_ic] = {2, 3, 4, 5};
 
 const int g_LogSize_ic = 40; // number of log entries
