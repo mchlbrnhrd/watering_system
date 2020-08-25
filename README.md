@@ -60,7 +60,7 @@ Here an example of an evaluation is shown. It shows that one plant (red line) wa
 
 # supported requirements
 This software supports following requirements:
-* R1: If pump is activated (on) then after time T1 there shall be a moisture change (below threshold S3). Otherwise go to error state.
+* R1: If pump is activated (on) then after time T1 there shall be a moisture change (below threshold S3). Otherwise go to error state. And the minimum watering time is T1.
 * R2: If moisture is lower than threshold S1 then pump has to be activated.
 * R3: If moisture is higher than threshold S2 then pump has to stop.
 * R4: Maximum time for activated pump time T2.
