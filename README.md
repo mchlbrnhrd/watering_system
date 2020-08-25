@@ -56,7 +56,7 @@ When using Arduino Yún the access to the Arduino board can be done in your WLAN
 ## evaluation example
 <img src="doc/evaluation_example_small.jpg" width="300" height="300" title="evaluation example">
 
-Here an example of an evaluation is shown. It shows that one plant (red line) was water several times. Another plant (green line) only once. For two plants (blue and yellow line) the moisture was nearly constant in the shown time.
+Here an example of an evaluation is shown (e.g. on your mobile phone during holiday, notebook, etc.). It shows that one plant (red line) was watered several times. Another plant (green line) only once. For two plants (blue and yellow line) the moisture was nearly constant in the shown time.
 
 # supported requirements
 This software supports following requirements:
