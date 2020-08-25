@@ -50,7 +50,13 @@ Type 'a'. Afterwards type channel number. Make sure sensor is dry. Then type '1'
 
 # IoT
 ![IoT principle](doc/scetch_iot_small.jpg)
+
 When using Arduino Yún the access to the Arduino board can be done in your WLAN environment. E.g. to setup the watering system like setting threshold values. Every hour log data are recorded and sent to a user defined server. So it is possible to check the watering system by remote using a mobile phone for example. The log data are stored in a human readable version and also a graphically evaluation can be shown on your mobile phone.
+
+## evaluation example
+![evaluation example](doc/evaluation_example_small.jpg)
+
+Here an example of an evaluation is shown. It shows that one plant (red line) was water several times. Another plant (green line) only once. For two plants (blue and yellow line) the moisture was nearly constant in the shown time.
 
 # supported requirements
 This software supports following requirements:
