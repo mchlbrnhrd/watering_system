@@ -2,7 +2,7 @@
 Automatic irrigation of plants on vacation.
 
 For this self watering system you need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit". It works with Arduino Nano. With Arduino Yún settings and log files are stored on a SD card. Also settings like threshold values and log files will be pushed
-to a user defined server. An example HTML file evaluates the log file.
+to a user defined server. An HTML file evaluates the log file and shows graphically the data.
 
 ![watering system](doc/watering_system_small.jpg)
 
@@ -65,7 +65,7 @@ This software supports following requirements:
 * R3: If moisture is higher than threshold S2 then pump has to stop.
 * R4: Maximum time for activated pump time T2.
 * R5: Wait at least time T3 before activating pump again.
-* R6: If after time T4 soil is too dry then start pump (maybe sensor is defect).
+* R6: If after time T4 soil is still too wet then start pump (maybe sensor is defect).
 * R7: Leave error state after time T5 and go to ready state (new trial to water plants).
 * R8: Requirements R1 - R7 works independent for each available pump.
 
