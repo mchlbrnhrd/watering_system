@@ -166,11 +166,11 @@ void setup()
     digitalWrite(LED_BUILTIN, LOW);
     delay(30);
   }
-  // wait 3 minutes
+#if (0 != gd_WATERING_SYSTEM_IOT)
+  // wait 3 minutes to make sure linux system is ready
   for (int k=0; k < 60*3; ++k) {
     delay(1000);
   }
-#if (0 != gd_WATERING_SYSTEM_IOT)
   Bridge.begin();
 #endif
 

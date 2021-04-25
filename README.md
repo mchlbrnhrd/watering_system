@@ -1,8 +1,9 @@
 # IoT watering system
 Automatic irrigation of plants on vacation.
 
-For this self watering system you need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit". It works with Arduino Nano. With Arduino Yún settings and log files are stored on a SD card. Also settings like threshold values and log files will be pushed
-to a user defined server. An HTML file evaluates the log file and shows graphically the data.
+For this self watering system you need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit". It works with Arduino Nano and Arduino Yún.
+
+Using Arduino Yún: Settings and log files are stored on a SD card. Also settings like threshold values and log files will be pushed to a user defined server. An HTML file evaluates the log file and shows graphically the data by remote on mobile phone or notebook.
 
 ![watering system](doc/watering_system_small.jpg)
 
@@ -54,7 +55,9 @@ Type 'a'. Afterwards type channel number. Make sure sensor is dry. Then type '1'
 When using Arduino Yún the access to the Arduino board can be done in your WLAN environment. E.g. to setup the watering system like setting threshold values. Every hour log data are recorded and sent to a user defined server. So it is possible to check the watering system by remote using a mobile phone for example. The log data are stored in a human readable version and also a graphically evaluation can be shown on your mobile phone.
 
 ## evaluation example
-<img src="doc/evaluation_example_small.jpg" width="300" height="300" title="evaluation example">
+<img src="doc/evaluation_example_mobile.png" width="300" height="300" title="evaluation example (mobile phone)">
+
+<img src="doc/evaluation_example_notebook.png" width="300" height="300" title="evaluation example (notebook)">
 
 Here an example of an evaluation is shown (e.g. on your mobile phone during holiday, notebook, etc.). It shows that one plant (red line) was watered several times. Another plant (green line) only once. For two plants (blue and yellow line) the moisture was nearly constant in the shown time.
 
