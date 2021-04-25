@@ -55,11 +55,15 @@ Type 'a'. Afterwards type channel number. Make sure sensor is dry. Then type '1'
 When using Arduino Yún the access to the Arduino board can be done in your WLAN environment. E.g. to setup the watering system like setting threshold values. Every hour log data are recorded and sent to a user defined server. So it is possible to check the watering system by remote using a mobile phone for example. The log data are stored in a human readable version and also a graphically evaluation can be shown on your mobile phone.
 
 ## Evaluation Example
-<img src="doc/evaluation_example_mobile.png" width="300" height="532" title="evaluation example (mobile phone)">
-
-<img src="doc/evaluation_example_notebook.png" width="500" height="400" title="evaluation example (notebook)">
-
 Here an example of an evaluation is shown (e.g. on your mobile phone during holiday, notebook, etc.). It shows that one plant (red line) was watered several times. Another plant (green line) only once. For two plants (blue and yellow line) the moisture was nearly constant in the shown time.
+
+Screenshot of mobile phone.<br />
+<img src="doc/evaluation_example_mobile.png" width="300" height="532" title="evaluation example (mobile phone)">
+<br />
+
+Screenshot of evaluation.<br />
+<img src="doc/evaluation_example_notebook.png" width="500" height="400" title="evaluation example (notebook)">
+<br />
 
 # Supported Requirements
 This software supports following requirements:
@@ -88,27 +92,33 @@ Upload _evaluation.html_ to the server for evaluating data.
 
 # Further Images
 ## Required Hardware
-Here Arudino Yún. Arudino Uno can also be used but have no internet access.
+Here Arudino Yún. Arudino Uno can also be used but without internet access.<br />
 <img src="doc/arduino_yun_top.jpg" width="500" title="Arudino Yún - top">
+<br />
 
-Arduino Yún with SD card:
+Arduino Yún with SD card:<br />
 <img src="doc/arduino_yun_bottom.jpg" width="500" title="Arudino Yún - bottom">
+<br />
 
-Relais module with battery holder and D-SUB connector for easy setup.
+Relais module with battery holder and D-SUB connector for easy setup.<br />
 <img src="doc/relais.jpg" width="500" title="Relais module with battery holder and D-SUB connector">
+<br />
 
-Pump with hose and D-SUB connector.
+Pump with hose and D-SUB connector.<br />
 <img src="doc/pump.jpg" width="500" title="Pump with hose and D-SUB connector">
+<br />
 
-Capacitive soil moisture sensor with connector.
+Capacitive soil moisture sensor with connector.<br />
 <img src="doc/sensor.jpg" width="500" title="Sensor with selfmade connector.">
 
 ## Remote Access
 With Arudino Yún settings and log data are pushed to an user defined server. So they can be read out remotly.
 
-Here an example of settings:
+Here an example of settings:<br />
 <img src="doc/settings.png" width="200" title="example of setting - remote">
+<br />
 
-Beside graphically visualisation log file can be read out as text:
+Beside graphically visualisation log file can be read out as text:<br />
 <img src="doc/log_example.png" width="500"  title="log file">
+<br />
 
