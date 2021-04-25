@@ -55,9 +55,9 @@ Type 'a'. Afterwards type channel number. Make sure sensor is dry. Then type '1'
 When using Arduino Yún the access to the Arduino board can be done in your WLAN environment. E.g. to setup the watering system like setting threshold values. Every hour log data are recorded and sent to a user defined server. So it is possible to check the watering system by remote using a mobile phone for example. The log data are stored in a human readable version and also a graphically evaluation can be shown on your mobile phone.
 
 ## evaluation example
-<img src="doc/evaluation_example_mobile.png" width="300" height="300" title="evaluation example (mobile phone)">
+<img src="doc/evaluation_example_mobile.png" width="300" height="532" title="evaluation example (mobile phone)">
 
-<img src="doc/evaluation_example_notebook.png" width="300" height="300" title="evaluation example (notebook)">
+<img src="doc/evaluation_example_notebook.png" width="400" height="400" title="evaluation example (notebook)">
 
 Here an example of an evaluation is shown (e.g. on your mobile phone during holiday, notebook, etc.). It shows that one plant (red line) was watered several times. Another plant (green line) only once. For two plants (blue and yellow line) the moisture was nearly constant in the shown time.
 
