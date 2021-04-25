@@ -1,9 +1,9 @@
 # IoT Watering System
 Automatic irrigation of plants on vacation.
 
-For this self watering system you need an Arduino microcontroller, water pump, relais module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit". It works with Arduino Nano and Arduino Yún.
+For this self watering system you need an Arduino microcontroller, water pump, relay module and a capacitive soil moisture sensor. For example "WayinTop Automatische Bewässerung DIY Kit". It works with Arduino Nano and Arduino Yún.
 
-Using Arduino Yún: Settings and log files are stored on a SD card. Also settings like threshold values and log files will be pushed to a user defined server. An HTML file evaluates the log file and shows graphically the data by remote on mobile phone or notebook.
+Using Arduino Yún: Monitoring moisture is done and those log data are stored together with settings on a SD card. Those data (settings like threshold values and log files) will be pushed to a user defined server. An HTML file evaluates the log file/monitoring and shows graphically the moisture by remote on mobile phone or notebook.
 
 ![watering system](doc/watering_system_small.jpg)
 
@@ -24,7 +24,7 @@ This software supports:
   - evaluate log files and show graphically from remote
 
 # Hardware Setup
-Connect digital outputs of arduino (microcontroller) with relais module inputs. Connect analog inputs of arduino with capacitive soil moisture sensors. Connect pumps with relais module switches and power supply. Make sure to use correct voltages for arduino board and pump.
+Connect digital outputs of arduino (microcontroller) with relay module inputs. Connect analog inputs of arduino with capacitive soil moisture sensors. Connect pumps with relay module switches and power supply. Make sure to use correct voltages for arduino board and pump.
 
 ![hardware setup](doc/scetch_small.jpg)
 
@@ -100,8 +100,8 @@ Arduino Yún with SD card:<br />
 <img src="doc/arduino_yun_bottom.jpg" width="500" title="Arudino Yún - bottom">
 <br />
 
-Relais module with battery holder and D-SUB connector for easy setup.<br />
-<img src="doc/relais.jpg" width="500" title="Relais module with battery holder and D-SUB connector">
+Relay module with battery holder and D-SUB connector for easy setup.<br />
+<img src="doc/relais.jpg" width="500" title="Relay module with battery holder and D-SUB connector">
 <br />
 
 Pump with hose and D-SUB connector.<br />
