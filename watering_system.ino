@@ -406,7 +406,7 @@ void defaultThreshold()
 void readSensor()
 {
   for (int i=0; i < g_NumPlants_ic; ++i) {
-    g_Plants_pst[i].Sensor_i = analogRead(g_SensorPin_pic[i]);
+    g_Plants_pst[i].Sensor_i = analogReadMean(g_SensorPin_pic[i], 3, 50);
   }
 }
 
@@ -644,7 +644,8 @@ void autoCalibration()
     Key_s = terminalReadString();
     Key_s.trim();
     if (Key_s.equals("1") ) {
-      ThresholdHigh_l = analogRead(g_SensorPin_pic[Channel_i]);
+      delay(100);
+      ThresholdHigh_l = (long)analogReadMean(g_SensorPin_pic[Channel_i], 5, 100);
     } else {
       Cancel_bl = true;
     } 
@@ -659,7 +660,9 @@ void autoCalibration()
     if (Key_s.equals("0") ) {
       g_Plants_pst[Channel_i].Mode_enm = modePumpReady;
       pumpOff(Channel_i);
-      ThresholdLow_l = analogRead(g_SensorPin_pic[Channel_i]);
+      // wait short time
+      delay(300);
+      ThresholdLow_l = (long)analogReadMean(g_SensorPin_pic[Channel_i], 5, 100);
     } else {
       Cancel_bl = true;
     }
@@ -870,6 +873,25 @@ void pumpOff(int Channel_i)
   addLogEntry();
 }
 
+
+//******************************************************************************************
+//  terminal: println
+//******************************************************************************************
+int analogReadMean(const int Pin_i, const int SampleNr_ci, const int Delay_i)
+{
+  int Ret_i = 0; // return 0 when parameter are invalid
+  if (SampleNr_ci > 0) {
+    int Value_i = 0;
+    for (int i=0; i < SampleNr_ci; ++i) {
+      Value_i += analogRead(Pin_i);
+      if (i+1  < SampleNr_ci) {
+        delay(Delay_i);
+      }
+    }
+    Ret_i = Value_i / SampleNr_ci;
+  }
+  return Ret_i;
+}
 
 
 //******************************************************************************************
