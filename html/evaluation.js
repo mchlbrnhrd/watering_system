@@ -19,94 +19,247 @@ function loadFile(filePathName) {
 //=========================================
 // main
 //=========================================
-var logData = loadFile("watering_log.txt");
-while (logData.indexOf("\r") >= 0) {
-  logData = logData.replace("\r", "");
-}
-var dataLines = logData.split("\n");
-var max_x = 1;
-var max_y = 1;
-var min_x = 100000;
-var min_y = 100000;
-var numColumns = 0;
+var showData0 = document.getElementById("showData0");
+var showData1 = document.getElementById("showData1");
+var showData2 = document.getElementById("showData2");
+var showData3 = document.getElementById("showData3");
+showData0.checked=true;
+showData1.checked=true;
+showData2.checked=true;
+showData3.checked=true;
+showMainData();
 
-var c = document.getElementById("EvaluationCanvas");
-var ctx = c.getContext("2d");
-var c_legend = document.getElementById("LegendCanvas");
-var ctx_legend = c_legend.getContext("2d");
 
-// read all data lines and find out minimum and maximum values for scaling
-for (var i = 0; i < dataLines.length; i++) {
-  var curLine = dataLines[i];
-  var curLineSplit = curLine.split(",");
-  if (curLineSplit.length > numColumns) {
-    numColumns=curLineSplit.length;
+function showMainData() {
+  var showData0 = document.getElementById("showData0");
+  var showData1 = document.getElementById("showData1");
+  var showData2 = document.getElementById("showData2");
+  var showData3 = document.getElementById("showData3");
+  var showData = [showData0.checked, showData1.checked, showData2.checked, showData3.checked];
+
+  var concatPrev0 = document.getElementById("concatPrev0");
+  var concatPrev1 = document.getElementById("concatPrev1");
+  var concatPrev2 = document.getElementById("concatPrev2");
+  var concatPrev = [concatPrev0.checked, concatPrev1.checked, concatPrev2.checked];
+
+  var logData = loadFile("watering_log.txt");
+  while (logData.indexOf("\r") >= 0) {
+    logData = logData.replace("\r", "");
   }
-  if (curLineSplit.length > 1) {
-    var x=parseInt(curLineSplit[0]);
-    if (x > max_x) {
-      max_x = x;
-    }
-    if (x < min_x) {
-      min_x = x;
-    }
-    for (var k = 1; k < curLineSplit.length; k++) {
-      var y=parseInt(curLineSplit[k]);
-      if (y > 0) {
-        if (y > max_y) {
-          max_y = y;
-        }
-        if (y < min_y) {
-          min_y = y;
+  var dataLines = logData.split("\n");
+
+  if (concatPrev[0]) {
+    //var selDatePrev=document.getElementById("dateSelect").value;
+    var sel=document.getElementById("dateSelect");
+    var selIndex=sel.selectedIndex;
+    var selLength=sel.length;
+    //window.alert(selLength.toString());
+    for (var idx=selLength-2; idx >= selIndex; --idx) {
+      var selDatePrev=sel[idx].value;
+      var filename = selDatePrev + "watering_log.txt";
+
+      var logDataPrev0 = loadFile(filename);
+      while (logDataPrev0.indexOf("\r") >= 0) {
+        logDataPrev0 = logDataPrev0.replace("\r", "");
+      }
+      var dataLinesPrev0 = logDataPrev0.split("\n");
+      var curLinePrev = dataLinesPrev0[dataLinesPrev0.length-2];
+      var curLineSplitPrev = curLinePrev.split(",");
+      var timeOffset=parseInt(curLineSplitPrev[0], 10);
+      // add timeOffset to current data
+      for (var k=0; k < dataLines.length; ++k) {
+        var curLine = dataLines[k];
+        if (curLine != "") {
+          var curLineSplit = curLine.split(",");
+          var newTime = parseInt(curLineSplit[0], 10) + timeOffset;
+          curLineSplit[0] = newTime.toString();
+          var newDataLine = "";
+          for (var m=0; m < curLineSplit.length; ++m) {
+            newDataLine += curLineSplit[m];
+            if (m+1 < curLineSplit.length) {
+              newDataLine += ",";
+            }
+            dataLines[k] = newDataLine;
+          }
         }
       }
+      dataLines.splice.apply(dataLines, [0, 0].concat(dataLinesPrev0));
     }
-  }
-}
-// draw data
-for (var k=1; k < numColumns; k++) {
-  switch (k) {
-    case 1:
-    ctx.strokeStyle = "#0096E6";
-    break;
-    case 2:
-    ctx.strokeStyle = "#FA1E00";
-    break;
-    case 3:
-    ctx.strokeStyle = "#64C83C";
-    break;
-    case 4:
-    ctx.strokeStyle = "#F0D000";
-    break;
-    default:
-    ctx.strokeStyle = "#000000";
-  }
-  ctx_legend.strokeStyle = ctx.strokeStyle;
-  ctx_legend.beginPath();
-  ctx_legend.moveTo(10, k*20);
-  ctx_legend.lineTo(190, k*20);
-  ctx_legend.stroke();
 
-  ctx.beginPath();
-  var first = 1;
+
+
+
+  //  for (var k=0; k < logDataPrev0.length; ++k) {
+  //    logData.push(logDataPrev0[k]);
+  //  }
+  }
+
+
+  var max_x = 1;
+  var max_y = 1;
+  var min_x = 100000;
+  var min_y = 100000;
+  var numColumns = 0;
+
+  var c = document.getElementById("EvaluationCanvas");
+  var ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, c.width, c.height);//}, false);
+  var c_legend = document.getElementById("LegendCanvas");
+  var ctx_legend = c_legend.getContext("2d");
+  ctx_legend.clearRect(0, 0, c_legend.width, c_legend.height);
+
+  // read all data lines and find out minimum and maximum values for scaling
   for (var i = 0; i < dataLines.length; i++) {
     var curLine = dataLines[i];
-    var curLineSplit = curLine.split(",");
-    if (numColumns == curLineSplit.length) {
-      var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*800;
-      var y=parseInt(curLineSplit[k]);
-      if (y > 0) {
-        var y=(y-min_y)/(max_y-min_y)*500;
-        if (0 != first) {
-          ctx.moveTo(x,y);
-          first=0;
-        } else {
-          ctx.lineTo(x,y);
+    if (curLine != "") {
+      var curLineSplit = curLine.split(",");
+      if (curLineSplit.length > numColumns) {
+        numColumns=curLineSplit.length;
+      }
+      if (curLineSplit.length > 1) {
+        var x=parseInt(curLineSplit[0]);
+        if (x > max_x) {
+          max_x = x;
+        }
+        if (x < min_x) {
+          min_x = x;
+        }
+        for (var k = 1; k < curLineSplit.length; k++) {
+          if (showData[k-1]) {
+            var y=parseInt(curLineSplit[k]);
+            if (y > 0) {
+              if (y > max_y) {
+                max_y = y;
+              }
+              if (y < min_y) {
+                min_y = y;
+              }
+            }
+          }
         }
       }
     }
   }
-  ctx.stroke();
+
+  // read thresholdData
+  var showThreshold = document.getElementById("showThreshold");
+  if (showThreshold.checked) {
+    var thresholdData = loadFile("watering_threshold.txt");
+    while (thresholdData.indexOf("\r") >= 0) {
+      thresholdData = thresholdData.replace("\r", "");
+    }
+    var dataLinesThreshold = thresholdData.split("\n");
+    var ctr=0;
+    for (var i = 0; i < dataLinesThreshold.length; i++) {
+      if (((i % 8 == 0) || (i % 8 == 1)) && showData[ctr]) {
+        var thresh = parseInt(dataLinesThreshold[i]);
+        if (thresh > max_y) {
+          max_y = thresh;
+        }
+        if (thresh < min_y) {
+          min_y = thresh;
+        }
+      }
+      if (i % 8 == 1) {
+        ctr++;
+      }
+    }
+
+  // draw background
+    var threshNumCtr=0;
+    ctx.save();
+    for (var i = 0; i < dataLinesThreshold.length; i++) {
+      switch (threshNumCtr) {
+        case 0:
+        ctx.strokeStyle = "#0096E6";
+        break;
+        case 1:
+        ctx.strokeStyle = "#FA1E00";
+        break;
+        case 2:
+        ctx.strokeStyle = "#64C83C";
+        break;
+        case 3:
+        ctx.strokeStyle = "#F0D000";
+        break;
+        default:
+        ctx.strokeStyle = "#000000";
+      }
+      var thresh = parseInt(dataLinesThreshold[i]);
+      thresh=(thresh-min_y)/(max_y-min_y)*500;
+      if (i % 8 == 0) {
+        if (showData[threshNumCtr]) {
+          ctx.setLineDash([3,10]);
+          ctx.beginPath();
+
+          ctx.moveTo(0, thresh);
+          ctx.lineTo(800, thresh);
+          ctx.stroke();
+        }
+      }
+      if (i % 8 == 1) {
+        if (showData[threshNumCtr]) {
+          ctx.setLineDash([5,15]);
+          ctx.beginPath();
+          ctx.moveTo(0, thresh);
+          ctx.lineTo(800, thresh);
+          ctx.stroke();
+        }
+        threshNumCtr++;
+      }
+    }
+    ctx.restore();
+  }
+
+  // draw data
+  for (var k=1; k < numColumns; k++) {
+    switch (k) {
+      case 1:
+      ctx.strokeStyle = "#0096E6";
+      break;
+      case 2:
+      ctx.strokeStyle = "#FA1E00";
+      break;
+      case 3:
+      ctx.strokeStyle = "#64C83C";
+      break;
+      case 4:
+      ctx.strokeStyle = "#F0D000";
+      break;
+      default:
+      ctx.strokeStyle = "#000000";
+    }
+    if (showData[k-1]) {
+      ctx_legend.strokeStyle = ctx.strokeStyle;
+      ctx_legend.beginPath();
+      ctx_legend.moveTo(10, k*20);
+      ctx_legend.lineTo(190, k*20);
+      ctx_legend.stroke();
+
+      ctx.beginPath();
+      var first = 1;
+      for (var i = 0; i < dataLines.length; i++) {
+        var curLine = dataLines[i];
+        if (curLine != "") {
+          var curLineSplit = curLine.split(",");
+          if (numColumns == curLineSplit.length) {
+            var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*800;
+            var y=parseInt(curLineSplit[k]);
+            if (y > 0) {
+              var y=(y-min_y)/(max_y-min_y)*500;
+              if (0 != first) {
+                ctx.moveTo(x,y);
+                first=0;
+              } else {
+                ctx.lineTo(x,y);
+              }
+            }
+          }
+        }
+      }
+      ctx.stroke();
+    }
+  }
 }
 
 

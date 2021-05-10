@@ -523,6 +523,7 @@ void terminal()
       Finished_bl = true;
     } else {
       Channel_i = Key_s.toInt();
+      printChannel(Channel_i);
       terminalPrintlnPgm(g_PgmCommand_pc);
       while (terminalAvailable() == 0);
       Command_s = terminalReadString();
