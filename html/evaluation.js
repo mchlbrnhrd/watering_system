@@ -19,6 +19,7 @@ function loadFile(filePathName) {
 //=========================================
 // main
 //=========================================
+const maxNumSensor = 4;
 var showData0 = document.getElementById("showData0");
 var showData1 = document.getElementById("showData1");
 var showData2 = document.getElementById("showData2");
@@ -49,6 +50,8 @@ function showMainData() {
   var dataLines = logData.split("\n");
 
   if (concatPrev[0]) {
+    // concatinate previous data sets
+
     //var selDatePrev=document.getElementById("dateSelect").value;
     var sel=document.getElementById("dateSelect");
     var selIndex=sel.selectedIndex;
@@ -71,13 +74,22 @@ function showMainData() {
         var curLine = dataLines[k];
         if (curLine != "") {
           var curLineSplit = curLine.split(",");
-          var newTime = parseInt(curLineSplit[0], 10) + timeOffset;
-          curLineSplit[0] = newTime.toString();
-          var newDataLine = "";
-          for (var m=0; m < curLineSplit.length; ++m) {
-            newDataLine += curLineSplit[m];
-            if (m+1 < curLineSplit.length) {
-              newDataLine += ",";
+          cancel=false;
+          for (var j=0; j < curLineSplit.length; ++j) {
+            if (0 == curLineSplit[j]) {
+              cancel=true;
+            }
+          }
+          if (!cancel) {
+            var newTime = parseInt(curLineSplit[0], 10) + timeOffset;
+            curLineSplit[0] = newTime.toString();
+            var newDataLine = "";
+            var length = curLineSplit.length > maxNumSensor+1 ? maxNumSensor+1: curLineSplit.length;
+            for (var m=0; m < length; ++m) {
+              newDataLine += curLineSplit[m];
+              if (m+1 < length) {
+                newDataLine += ",";
+              }
             }
             dataLines[k] = newDataLine;
           }
@@ -93,6 +105,7 @@ function showMainData() {
   //    logData.push(logDataPrev0[k]);
   //  }
   }
+
 
 
   var max_x = 1;
@@ -113,26 +126,36 @@ function showMainData() {
     var curLine = dataLines[i];
     if (curLine != "") {
       var curLineSplit = curLine.split(",");
-      if (curLineSplit.length > numColumns) {
-        numColumns=curLineSplit.length;
+      // ignore invalid data sets (at least one entry is 0)
+      var cancel=false;
+      for (var j=0; j < curLineSplit.length; ++j) {
+        if (0 == curLineSplit[j]) {
+          cancel=true;
+        }
       }
-      if (curLineSplit.length > 1) {
-        var x=parseInt(curLineSplit[0]);
-        if (x > max_x) {
-          max_x = x;
+      if (!cancel) {
+        if (curLineSplit.length > numColumns) {
+          numColumns=curLineSplit.length;
         }
-        if (x < min_x) {
-          min_x = x;
-        }
-        for (var k = 1; k < curLineSplit.length; k++) {
-          if (showData[k-1]) {
-            var y=parseInt(curLineSplit[k]);
-            if (y > 0) {
-              if (y > max_y) {
-                max_y = y;
-              }
-              if (y < min_y) {
-                min_y = y;
+        if (curLineSplit.length > 1) {
+          var x=parseInt(curLineSplit[0]);
+          if (x > max_x) {
+            max_x = x;
+          }
+          if (x < min_x) {
+            min_x = x;
+          }
+          var length = curLineSplit.length > maxNumSensor+1 ? maxNumSensor+1 : curLineSplit.length;
+          for (var k = 1; k < length; k++) {
+            if (showData[k-1]) {
+              var y=parseInt(curLineSplit[k]);
+              if (y > 0) {
+                if (y > max_y) {
+                  max_y = y;
+                }
+                if (y < min_y) {
+                  min_y = y;
+                }
               }
             }
           }
@@ -151,17 +174,19 @@ function showMainData() {
     var dataLinesThreshold = thresholdData.split("\n");
     var ctr=0;
     for (var i = 0; i < dataLinesThreshold.length; i++) {
-      if (((i % 8 == 0) || (i % 8 == 1)) && showData[ctr]) {
-        var thresh = parseInt(dataLinesThreshold[i]);
-        if (thresh > max_y) {
-          max_y = thresh;
+      if (ctr < maxNumSensor) {
+        if (((i % 8 == 0) || (i % 8 == 1)) && showData[ctr]) {
+          var thresh = parseInt(dataLinesThreshold[i]);
+          if (thresh > max_y) {
+            max_y = thresh;
+          }
+          if (thresh < min_y) {
+            min_y = thresh;
+          }
         }
-        if (thresh < min_y) {
-          min_y = thresh;
+        if (i % 8 == 1) {
+          ctr++;
         }
-      }
-      if (i % 8 == 1) {
-        ctr++;
       }
     }
 
@@ -169,49 +194,54 @@ function showMainData() {
     var threshNumCtr=0;
     ctx.save();
     for (var i = 0; i < dataLinesThreshold.length; i++) {
-      switch (threshNumCtr) {
-        case 0:
-        ctx.strokeStyle = "#0096E6";
-        break;
-        case 1:
-        ctx.strokeStyle = "#FA1E00";
-        break;
-        case 2:
-        ctx.strokeStyle = "#64C83C";
-        break;
-        case 3:
-        ctx.strokeStyle = "#F0D000";
-        break;
-        default:
-        ctx.strokeStyle = "#000000";
-      }
-      var thresh = parseInt(dataLinesThreshold[i]);
-      thresh=(thresh-min_y)/(max_y-min_y)*500;
-      if (i % 8 == 0) {
-        if (showData[threshNumCtr]) {
-          ctx.setLineDash([3,10]);
-          ctx.beginPath();
+      if (threshNumCtr < maxNumSensor) {
+        switch (threshNumCtr) {
+          case 0:
+          ctx.strokeStyle = "#0096E6";
+          break;
+          case 1:
+          ctx.strokeStyle = "#FA1E00";
+          break;
+          case 2:
+          ctx.strokeStyle = "#64C83C";
+          break;
+          case 3:
+          ctx.strokeStyle = "#F0D000";
+          break;
+          default:
+          ctx.strokeStyle = "#000000";
+        }
+        var thresh = parseInt(dataLinesThreshold[i]);
+        thresh=(thresh-min_y)/(max_y-min_y)*500;
+        if (i % 8 == 0) {
+          if (showData[threshNumCtr]) {
+            ctx.setLineDash([3,10]);
+            ctx.beginPath();
 
-          ctx.moveTo(0, thresh);
-          ctx.lineTo(800, thresh);
-          ctx.stroke();
+            ctx.moveTo(0, thresh);
+            ctx.lineTo(800, thresh);
+            ctx.stroke();
+          }
         }
-      }
-      if (i % 8 == 1) {
-        if (showData[threshNumCtr]) {
-          ctx.setLineDash([5,15]);
-          ctx.beginPath();
-          ctx.moveTo(0, thresh);
-          ctx.lineTo(800, thresh);
-          ctx.stroke();
+        if (i % 8 == 1) {
+          if (showData[threshNumCtr]) {
+            ctx.setLineDash([5,15]);
+            ctx.beginPath();
+            ctx.moveTo(0, thresh);
+            ctx.lineTo(800, thresh);
+            ctx.stroke();
+          }
+          threshNumCtr++;
         }
-        threshNumCtr++;
       }
     }
     ctx.restore();
   }
 
   // draw data
+  if (numColumns > maxNumSensor) {
+    numColumns = maxNumSensor;
+  }
   for (var k=1; k < numColumns; k++) {
     switch (k) {
       case 1:
@@ -242,16 +272,25 @@ function showMainData() {
         var curLine = dataLines[i];
         if (curLine != "") {
           var curLineSplit = curLine.split(",");
-          if (numColumns == curLineSplit.length) {
-            var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*800;
-            var y=parseInt(curLineSplit[k]);
-            if (y > 0) {
-              var y=(y-min_y)/(max_y-min_y)*500;
-              if (0 != first) {
-                ctx.moveTo(x,y);
-                first=0;
-              } else {
-                ctx.lineTo(x,y);
+          // ignore invalid data sets (at least one entry is 0 is invalid)
+          cancel=false;
+          for (var j=0; j < curLineSplit.length; ++j) {
+            if (0 == curLineSplit[j]) {
+              cancel=true;
+            }
+          }
+          if (!cancel) {
+            if (curLineSplit.length >= numColumns) {
+              var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*800;
+              var y=parseInt(curLineSplit[k]);
+              if (y > 0) {
+                var y=(y-min_y)/(max_y-min_y)*500;
+                if (0 != first) {
+                  ctx.moveTo(x,y);
+                  first=0;
+                } else {
+                  ctx.lineTo(x,y);
+                }
               }
             }
           }
@@ -366,6 +405,9 @@ function showSelData() {
     }
   }
   // draw data
+  if (numColumns > maxNumSensor) {
+    numColumns = maxNumSensor;
+  }
   for (var k=1; k < numColumns; k++) {
     switch (k) {
       case 1:
@@ -389,7 +431,7 @@ function showSelData() {
     for (var i = 0; i < dataLines.length; i++) {
       var curLine = dataLines[i];
       var curLineSplit = curLine.split(",");
-      if (numColumns == curLineSplit.length) {
+      if (curLineSplit.length >= numColumns) {
         var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*800;
         var y=parseInt(curLineSplit[k]);
         if (y > 0) {
