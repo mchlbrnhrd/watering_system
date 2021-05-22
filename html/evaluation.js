@@ -239,8 +239,8 @@ function showMainData() {
   }
 
   // draw data
-  if (numColumns > maxNumSensor) {
-    numColumns = maxNumSensor;
+  if (numColumns > maxNumSensor+1) {
+    numColumns = maxNumSensor+1;
   }
   for (var k=1; k < numColumns; k++) {
     switch (k) {
@@ -405,8 +405,8 @@ function showSelData() {
     }
   }
   // draw data
-  if (numColumns > maxNumSensor) {
-    numColumns = maxNumSensor;
+  if (numColumns > maxNumSensor+1) {
+    numColumns = maxNumSensor+1;
   }
   for (var k=1; k < numColumns; k++) {
     switch (k) {
