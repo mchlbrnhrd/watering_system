@@ -41,7 +41,7 @@ const long g_LogInterval_lc = 60L*60L; // log interval 1 h
 
 // store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
-const char g_PgmHelp_pc[] PROGMEM = {"h: help; v: version; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode;\nl: read log; p: add log entry and push to server; a: auto calibration; w: write threshold values; c: cancel/continue"};
+const char g_PgmHelp_pc[] PROGMEM = {"h: help; v: version; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode;\nl: read log; p: add log entry and push to server; a: auto calibration; w: write/save threshold values; k: fast pump check; c: cancel/continue"};
 const char g_PgmInfo_pc[] PROGMEM = {"Info"};
 const char g_PgmSensor_pc[] PROGMEM = {"Sensor "};
 const char g_PgmTime_pc[] PROGMEM = {"Time: "};
@@ -116,7 +116,7 @@ struct typedefPlant {
   long TimeOutPumpOn_l;          // T1: timout when pump is on: after this time, a value change is expected
   long TimePumpOnMax_l;          // T2: maximum time for pump is on. After this time, pump is switched off
   long TimeWait_l;               // T3: wait this time after last pump on before start new pump on: stay at least TimeWait in pump off mode
-  long TimeOutPumpOff_l;         // T4: when pump is off: start pump independent of sensor value after this timout
+  long TimeOutPumpOff_l;         // T4: when pump is off: start pump independent of sensor value after this timeout
   long TimeOutErrorState_l;      // T5: release error state after this timeout
 };
 
@@ -273,6 +273,8 @@ void loop()
       addLogEntryAndPushToServer(false);
     } else if (Key_s.equals("a") || Key_s.equals("A")) {
       autoCalibration();
+    } else if (Key_s.equals("k") || Key_s.equals("K")) {
+      fastPumpCheck();
     } else if (Key_s.equals("w") || Key_s.equals("W")) {
 #if (0 != gd_WATERING_SYSTEM_IOT)
       writeThresholdSD();
@@ -773,6 +775,35 @@ void autoCalibration()
 #if (0 != gd_WATERING_SYSTEM_IOT)
   writeThresholdSD();
 #endif
+  terminalPrintlnPgm(g_PgmContinue_pc);
+  softReset(false);
+}
+
+
+//******************************************************************************************
+//  fastPumpCheck
+//******************************************************************************************
+void fastPumpCheck()
+{
+  bool Cancel_bl = false;
+  terminalPrintlnPgm(g_PgmTime_pc);
+  while (terminalAvailable() == 0);
+  String Key_s = terminalReadString();
+  Key_s.trim();
+  terminalPrintln(Key_s);
+  int Time_i = 0;
+  if (Key_s.equals("c") || Key_s.equals("C")) {
+    Cancel_bl = true;
+  } else {
+    Time_i = Key_s.toInt();
+  }
+  if (!Cancel_bl) {
+    for (int k=0; k < g_NumPlants_ic; ++k) {
+      pumpOn(k);
+      delay(Time_i);
+      pumpOff(k);
+    }
+  }
   terminalPrintlnPgm(g_PgmContinue_pc);
   softReset(false);
 }
