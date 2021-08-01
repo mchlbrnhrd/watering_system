@@ -24,14 +24,17 @@
 //******************************************************************************************
 
 // number of plants (pumps, sensors and relais)
-const int g_NumPlants_ic = 4;
+const int g_NumPlants_ic = 8;
+// in this version: nr. 0, 1, 2, 3: pump with sensor (connected to SUB-D)
+//                  nr. 4, 5, 6:    pump without sensor (connected to SUB-D)
+//                  nr. 7:          relay output only
 
 // version to print on console
-const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.05"};
+const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.05 f"};
 
 // pin connection of sensor and pump (relais module) to arduino board
-const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A4};
-const int g_PumpPin_pic[g_NumPlants_ic] = {2, 3, 4, 5};
+const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A4, A3, A3, A3, A3}; // A3 not used here
+const int g_PumpPin_pic[g_NumPlants_ic] = {10,11, 12, 4,    5, 6, 8, 9};
 
 const int g_LogSize_ic = 40; // number of log entries
 const long g_LogInterval_lc = 60L*60L; // log interval 1 h
@@ -393,11 +396,83 @@ void defaultThreshold()
     g_Plants_pst[i].ThresholdHigh_i = 2100; //large number as default to deactivate: force user defined setting
     g_Plants_pst[i].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
     g_Plants_pst[i].TimeOutPumpOn_l = 5L; 
-    g_Plants_pst[i].TimePumpOnMax_l = 20L;
+    g_Plants_pst[i].TimePumpOnMax_l = 10L;
     g_Plants_pst[i].TimeWait_l = 1L*60L*60L*6L; // 6 hours
     g_Plants_pst[i].TimeOutPumpOff_l = 2L*60L*60L*12L; // 2 days + TimeWait
     g_Plants_pst[i].TimeOutErrorState_l = 60L*60L*1L; // 1 hour
-  } 
+  }
+
+    g_Plants_pst[0].ThresholdLow_i = 420; // large number as default to deactive: force user defined setting
+    g_Plants_pst[0].ThresholdHigh_i = 510; //large number as default to deactivate: force user defined setting
+    g_Plants_pst[0].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
+    g_Plants_pst[0].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[0].TimePumpOnMax_l = 10L;
+    g_Plants_pst[0].TimeWait_l = 21600L; // 6 hours
+    g_Plants_pst[0].TimeOutPumpOff_l = 86400L; // 2 days + TimeWait
+    g_Plants_pst[0].TimeOutErrorState_l = 3600L; // 1 hour
+
+    g_Plants_pst[1].ThresholdLow_i = 500; // large number as default to deactive: force user defined setting
+    g_Plants_pst[1].ThresholdHigh_i = 600; //large number as default to deactivate: force user defined setting
+    g_Plants_pst[1].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
+    g_Plants_pst[1].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[1].TimePumpOnMax_l = 4L;
+    g_Plants_pst[1].TimeWait_l = 21600L; // 6 hours
+    g_Plants_pst[1].TimeOutPumpOff_l = 86400L; // 2 days + TimeWait
+    g_Plants_pst[1].TimeOutErrorState_l = 3600L; // 1 hour
+
+    g_Plants_pst[2].ThresholdLow_i = 470; // large number as default to deactive: force user defined setting
+    g_Plants_pst[2].ThresholdHigh_i = 520; //large number as default to deactivate: force user defined setting
+    g_Plants_pst[2].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
+    g_Plants_pst[2].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[2].TimePumpOnMax_l = 4L;
+    g_Plants_pst[2].TimeWait_l = 21600L; // 6 hours
+    g_Plants_pst[2].TimeOutPumpOff_l = 86400L; // 2 days + TimeWait
+    g_Plants_pst[2].TimeOutErrorState_l = 3600L; // 1 hour
+
+    g_Plants_pst[3].ThresholdLow_i = 535; // large number as default to deactive: force user defined setting
+    g_Plants_pst[3].ThresholdHigh_i = 580; //large number as default to deactivate: force user defined setting
+    g_Plants_pst[3].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
+    g_Plants_pst[3].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[3].TimePumpOnMax_l = 4L;
+    g_Plants_pst[3].TimeWait_l = 21600L; // 6 hours
+    g_Plants_pst[3].TimeOutPumpOff_l = 86400L; // 2 days + TimeWait
+    g_Plants_pst[3].TimeOutErrorState_l = 3600L; // 1 hour
+
+    g_Plants_pst[4].ThresholdLow_i = 2000L; // large number as default to deactive: force user defined setting
+    g_Plants_pst[4].ThresholdHigh_i = 2100L; //large number as default to deactivate: force user defined setting
+    g_Plants_pst[4].ThresholdExpectedChange_i = 2200L; // use large value to deactivate this function
+    g_Plants_pst[4].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[4].TimePumpOnMax_l = 4L;
+    g_Plants_pst[4].TimeWait_l = 129660L;
+    g_Plants_pst[4].TimeOutPumpOff_l = 43200; // 2 days + TimeWait
+    g_Plants_pst[4].TimeOutErrorState_l = 43200; // 1 hour
+
+    g_Plants_pst[5].ThresholdLow_i = 1900; // large number as default to deactive: force user defined setting
+    g_Plants_pst[5].ThresholdHigh_i = 1910; //large number as default to deactivate: force user defined setting
+    g_Plants_pst[5].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
+    g_Plants_pst[5].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[5].TimePumpOnMax_l = 4L;
+    g_Plants_pst[5].TimeWait_l = 21600L; // 6 hours
+    g_Plants_pst[5].TimeOutPumpOff_l = 21600L; // 2 days + TimeWait
+    g_Plants_pst[5].TimeOutErrorState_l = 21600L; // 1 hour
+
+    g_Plants_pst[6].ThresholdLow_i = 1900; // large number as default to deactive: force user defined setting
+    g_Plants_pst[6].ThresholdHigh_i = 1910; //large number as default to deactivate: force user defined setting
+    g_Plants_pst[6].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
+    g_Plants_pst[6].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[6].TimePumpOnMax_l = 4L;
+    g_Plants_pst[6].TimeWait_l = 21600L; // 6 hours
+    g_Plants_pst[6].TimeOutPumpOff_l = 21600L; // 2 days + TimeWait
+    g_Plants_pst[6].TimeOutErrorState_l = 21600L; // 1 hour
+
+    g_Plants_pst[7].ThresholdLow_i = 1900; // large number as default to deactive: force user defined setting
+    g_Plants_pst[7].ThresholdHigh_i = 1910; //large number as default to deactivate: force user defined setting
+    g_Plants_pst[7].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
+    g_Plants_pst[7].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[7].TimePumpOnMax_l = 4L;
+    g_Plants_pst[7].TimeWait_l = 21600L; // 6 hours
+    g_Plants_pst[7].TimeOutPumpOff_l = 21600L; // 2 days + TimeWait
+    g_Plants_pst[7].TimeOutErrorState_l = 21600L; // 1 hour
 }
 
 
@@ -480,10 +555,10 @@ void pumpControl()
       if (g_Plants_pst[i].CurrTime_l  > g_Plants_pst[i].TimeWait_l) {
         g_Plants_pst[i].Mode_enm = modePumpReady;
         TimerReset_bl = true;
-        if (g_DebugMode_bl) {
+       // if (g_DebugMode_bl) {
           terminalPrint(i);
           terminalPrintlnPgm(g_PgmDebugR5_pc);
-        }
+       // }
       }
 
       
@@ -678,8 +753,8 @@ void autoCalibration()
   if (!Cancel_bl) {
     terminalPrintln(ThresholdLow_l);
     terminalPrintln(ThresholdHigh_l);
-    ThresholdLow_l = (ThresholdLow_l * 105L) / 100L; // add 5 percent
-    ThresholdHigh_l = (ThresholdHigh_l * 85L) / 100L; // subtract 15 percent
+    ThresholdLow_l = (ThresholdLow_l * 115L) / 100L; // add 15 percent
+    ThresholdHigh_l = (ThresholdHigh_l * 80L) / 100L; // subtract 20 percent
     g_Plants_pst[Channel_i].ThresholdLow_i = (int)ThresholdLow_l;
     g_Plants_pst[Channel_i].ThresholdHigh_i = (int)ThresholdHigh_l;
     // expected change close to threshold high
