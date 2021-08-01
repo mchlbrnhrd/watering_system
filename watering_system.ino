@@ -30,7 +30,7 @@ const int g_NumPlants_ic = 8;
 //                  nr. 7:          relay output only
 
 // version to print on console
-const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.05 f"};
+const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.08.01 a"};
 
 // pin connection of sensor and pump (relais module) to arduino board
 const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A4, A3, A3, A3, A3}; // A3 not used here
@@ -174,8 +174,17 @@ void setup()
   }
 #if (0 != gd_WATERING_SYSTEM_IOT)
   // wait 3 minutes to make sure linux system is ready
+  const int led_on_time=100;
   for (int k=0; k < 60*3; ++k) {
-    delay(1000);
+    const int minute=k/60;
+    const int blink_time=(minute+1)*2*led_on_time;
+    delay(1000-blink_time);
+    for (int j=0; j < minute+1; ++j) {
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(led_on_time);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(led_on_time);
+    }
   }
   Bridge.begin();
 #endif
@@ -423,7 +432,7 @@ void defaultThreshold()
     g_Plants_pst[2].ThresholdLow_i = 470; // large number as default to deactive: force user defined setting
     g_Plants_pst[2].ThresholdHigh_i = 520; //large number as default to deactivate: force user defined setting
     g_Plants_pst[2].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
-    g_Plants_pst[2].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[2].TimeOutPumpOn_l = 5L;
     g_Plants_pst[2].TimePumpOnMax_l = 4L;
     g_Plants_pst[2].TimeWait_l = 21600L; // 6 hours
     g_Plants_pst[2].TimeOutPumpOff_l = 86400L; // 2 days + TimeWait
@@ -432,7 +441,7 @@ void defaultThreshold()
     g_Plants_pst[3].ThresholdLow_i = 535; // large number as default to deactive: force user defined setting
     g_Plants_pst[3].ThresholdHigh_i = 580; //large number as default to deactivate: force user defined setting
     g_Plants_pst[3].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
-    g_Plants_pst[3].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[3].TimeOutPumpOn_l = 5L;
     g_Plants_pst[3].TimePumpOnMax_l = 4L;
     g_Plants_pst[3].TimeWait_l = 21600L; // 6 hours
     g_Plants_pst[3].TimeOutPumpOff_l = 86400L; // 2 days + TimeWait
@@ -441,7 +450,7 @@ void defaultThreshold()
     g_Plants_pst[4].ThresholdLow_i = 2000L; // large number as default to deactive: force user defined setting
     g_Plants_pst[4].ThresholdHigh_i = 2100L; //large number as default to deactivate: force user defined setting
     g_Plants_pst[4].ThresholdExpectedChange_i = 2200L; // use large value to deactivate this function
-    g_Plants_pst[4].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[4].TimeOutPumpOn_l = 5L;
     g_Plants_pst[4].TimePumpOnMax_l = 4L;
     g_Plants_pst[4].TimeWait_l = 129660L;
     g_Plants_pst[4].TimeOutPumpOff_l = 43200; // 2 days + TimeWait
@@ -450,7 +459,7 @@ void defaultThreshold()
     g_Plants_pst[5].ThresholdLow_i = 1900; // large number as default to deactive: force user defined setting
     g_Plants_pst[5].ThresholdHigh_i = 1910; //large number as default to deactivate: force user defined setting
     g_Plants_pst[5].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
-    g_Plants_pst[5].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[5].TimeOutPumpOn_l = 5L;
     g_Plants_pst[5].TimePumpOnMax_l = 4L;
     g_Plants_pst[5].TimeWait_l = 21600L; // 6 hours
     g_Plants_pst[5].TimeOutPumpOff_l = 21600L; // 2 days + TimeWait
@@ -468,7 +477,7 @@ void defaultThreshold()
     g_Plants_pst[7].ThresholdLow_i = 1900; // large number as default to deactive: force user defined setting
     g_Plants_pst[7].ThresholdHigh_i = 1910; //large number as default to deactivate: force user defined setting
     g_Plants_pst[7].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
-    g_Plants_pst[7].TimeOutPumpOn_l = 5L; 
+    g_Plants_pst[7].TimeOutPumpOn_l = 5L;
     g_Plants_pst[7].TimePumpOnMax_l = 4L;
     g_Plants_pst[7].TimeWait_l = 21600L; // 6 hours
     g_Plants_pst[7].TimeOutPumpOff_l = 21600L; // 2 days + TimeWait
@@ -555,10 +564,10 @@ void pumpControl()
       if (g_Plants_pst[i].CurrTime_l  > g_Plants_pst[i].TimeWait_l) {
         g_Plants_pst[i].Mode_enm = modePumpReady;
         TimerReset_bl = true;
-       // if (g_DebugMode_bl) {
+        if (g_DebugMode_bl) {
           terminalPrint(i);
           terminalPrintlnPgm(g_PgmDebugR5_pc);
-       // }
+        }
       }
 
       
