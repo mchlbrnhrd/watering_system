@@ -766,8 +766,10 @@ void autoCalibration()
     // print out meassured thresholds
     terminalPrintln(ThresholdLow_l);
     terminalPrintln(ThresholdHigh_l);
-    ThresholdLow_l = (ThresholdLow_l * 115L) / 100L; // add 15 percent
-    ThresholdHigh_l = (ThresholdHigh_l * 80L) / 100L; // subtract 20 percent
+    const long Difference_l = ThresholdHigh_l - ThresholdLow_l;
+    const long Percentage_l = (Difference_l * 15L)/100L; // 15 %
+    ThresholdLow_l += Percentage_l; // add 15 percent of difference
+    ThresholdHigh_l -= Percentage_l; // subtract 15 percent of difference
     g_Plants_pst[Channel_i].ThresholdLow_i = (int)ThresholdLow_l;
     g_Plants_pst[Channel_i].ThresholdHigh_i = (int)ThresholdHigh_l;
     // expected change close to threshold high
