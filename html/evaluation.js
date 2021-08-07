@@ -165,6 +165,32 @@ function showMainData() {
   }
 
   // read thresholdData
+  // example (human readable version:)
+  // Channel: 1
+  // [S1] threshold low             : 330
+  // [S2] threshold high            : 448
+  // [S3] threshold expected change : 2250
+  // [T1] timeout pump on           : 5
+  // [T2] time pump on max          : 20
+  // [T3] time wait                 : 129660
+  // [T4] time out pump off         : 86400
+  // [T5] time out error state      : 86400
+  //
+  // example: mashine readable version
+  // 330
+  // 448
+  // 2250
+  // 5
+  // 20
+  // 129660
+  // 86400
+  // 86400
+  //
+  // => numSetEntry = 8; idxLow=0; idxHigh=1
+  const numSetEntry=8;
+  const idxLow=0;
+  const idxHigh=1;
+
   var showThreshold = document.getElementById("showThreshold");
   if (showThreshold.checked) {
     var thresholdData = loadFile("watering_threshold.txt");
@@ -175,7 +201,7 @@ function showMainData() {
     var ctr=0;
     for (var i = 0; i < dataLinesThreshold.length; i++) {
       if (ctr < maxNumSensor) {
-        if (((i % 8 == 0) || (i % 8 == 1)) && showData[ctr]) {
+        if (((i % numSetEntry == idxLow) || (i % numSetEntry == idxHigh)) && showData[ctr]) {
           var thresh = parseInt(dataLinesThreshold[i]);
           if (thresh > max_y) {
             max_y = thresh;
@@ -184,7 +210,7 @@ function showMainData() {
             min_y = thresh;
           }
         }
-        if (i % 8 == 1) {
+        if (i % numSetEntry == idxHigh) {
           ctr++;
         }
       }
@@ -213,7 +239,7 @@ function showMainData() {
         }
         var thresh = parseInt(dataLinesThreshold[i]);
         thresh=(thresh-min_y)/(max_y-min_y)*500;
-        if (i % 8 == 0) {
+        if (i % numSetEntry == idxLow) {
           if (showData[threshNumCtr]) {
             ctx.setLineDash([3,10]);
             ctx.beginPath();
@@ -223,7 +249,7 @@ function showMainData() {
             ctx.stroke();
           }
         }
-        if (i % 8 == 1) {
+        if (i % numSetEntry == idxHigh) {
           if (showData[threshNumCtr]) {
             ctx.setLineDash([5,15]);
             ctx.beginPath();
