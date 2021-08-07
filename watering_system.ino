@@ -493,7 +493,7 @@ void defaultThreshold()
 void readSensor()
 {
   for (int i=0; i < g_NumPlants_ic; ++i) {
-    g_Plants_pst[i].Sensor_i = analogReadMean(g_SensorPin_pic[i], 3, 50);
+    g_Plants_pst[i].Sensor_i = analogReadMean(g_SensorPin_pic[i], 5, 10);
   }
 }
 
@@ -738,8 +738,9 @@ void autoCalibration()
     Key_s = terminalReadString();
     Key_s.trim();
     if (Key_s.equals("1") ) {
-      delay(100);
-      ThresholdHigh_l = (long)analogReadMean(g_SensorPin_pic[Channel_i], 5, 100);
+      delay(1000); // wait for a second before reading analog/threshold value
+      // meassurement for threshold high (dry soil) will take one second
+      ThresholdHigh_l = (long)analogReadMean(g_SensorPin_pic[Channel_i], 10, 100);
     } else {
       Cancel_bl = true;
     } 
@@ -754,14 +755,15 @@ void autoCalibration()
     if (Key_s.equals("0") ) {
       g_Plants_pst[Channel_i].Mode_enm = modePumpReady;
       pumpOff(Channel_i);
-      // wait short time
-      delay(300);
-      ThresholdLow_l = (long)analogReadMean(g_SensorPin_pic[Channel_i], 5, 100);
+      delay(1000);  // wait a second before starting meassurement
+      // meassurement for threshold low (wet soil) will take one second
+      ThresholdLow_l = (long)analogReadMean(g_SensorPin_pic[Channel_i], 10, 100);
     } else {
       Cancel_bl = true;
     }
   }
   if (!Cancel_bl) {
+    // print out meassured thresholds
     terminalPrintln(ThresholdLow_l);
     terminalPrintln(ThresholdHigh_l);
     ThresholdLow_l = (ThresholdLow_l * 115L) / 100L; // add 15 percent
