@@ -38,10 +38,12 @@ const int g_PumpPin_pic[g_NumPlants_ic] = {10,11, 12, 4,    5, 6, 8, 9};
 
 const int g_LogSize_ic = 40; // number of log entries
 const long g_LogInterval_lc = 60L*60L; // log interval 1 h
+const int g_IdleTimeSeconds_ic = 120; // stay for IdleTimeSeconds in idle mode: usefull when setup watering system first time; avoid starting pump automatically
+// after time out normal watering system mode.a I.e. after (unwanted) power cycle system will continue but it is possible to stop for calibration
 
 // store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
-const char g_PgmHelp_pc[] PROGMEM = {"h: help; v: version; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode;\nl: read log; p: add log entry and push to server; a: auto calibration; w: write/save threshold values; k: fast pump check; c: cancel/continue"};
+const char g_PgmHelp_pc[] PROGMEM = {"h: help; v: version; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode;\nl: read log; p: add log entry and push to server; a: auto calibration; w: write/save threshold values; k: fast pump check; b: break (deactivate thresholds); c: cancel/continue"};
 const char g_PgmInfo_pc[] PROGMEM = {"Info"};
 const char g_PgmSensor_pc[] PROGMEM = {"Sensor "};
 const char g_PgmTime_pc[] PROGMEM = {"Time: "};
@@ -145,6 +147,9 @@ bool g_PrintInfo_bl = false;
 bool g_DebugMode_bl = false;
 long g_LogTimer_l = 0;
 bool g_LogDone_bl = false;
+bool g_Idle_bl = true;
+int g_IdleTime_i = 0;
+bool g_IdleHeartBeat_bl = false;
 
 
 //******************************************************************************************
@@ -158,6 +163,8 @@ bool g_LogDone_bl = false;
 //******************************************************************************************
 void setup() 
 {
+  g_Idle_bl = true;
+  g_IdleTime_i = 0;
   pinMode(LED_BUILTIN, OUTPUT);
   for(int i=0; i < g_NumPlants_ic; ++i) {
     pinMode(g_SensorPin_pic[i], INPUT);
@@ -219,27 +226,42 @@ void setup()
 //******************************************************************************************
 void loop() 
 {
-  // show heart beat
-  digitalWrite(LED_BUILTIN, g_HeartBeat_bl);
+  if (g_Idle_bl) {
+    // signalize idle mode by showing LED only for a short time
+    if (g_HeartBeat_bl && !g_IdleHeartBeat_bl) { // detect rising edge of HeartBeat
+      const int repetitions_i = (g_IdleTime_i / 30) + 1;
+      for (int k=0; k < repetitions_i; ++k) {
+        delay(100);
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(100);
+        digitalWrite(LED_BUILTIN, LOW);
+      }
+    } 
+    g_IdleHeartBeat_bl = g_HeartBeat_bl; // for rising edge detection of HeartBeat
+  } else {
+    // show heart beat
+    digitalWrite(LED_BUILTIN, g_HeartBeat_bl);
 
-  // LED always on when an error occured
-  for (int i=0; i < g_NumPlants_ic; ++i) {
-    if (g_Plants_pst[i].Mode_enm == modePumpError) {
-      digitalWrite(LED_BUILTIN, HIGH);
+    // LED always on when an error occured
+    for (int i=0; i < g_NumPlants_ic; ++i) {
+      if (g_Plants_pst[i].Mode_enm == modePumpError) {
+        digitalWrite(LED_BUILTIN, HIGH);
+      }
     }
-  }
-  // read sensor values
-  readSensor();
 
-  // pump control
-  pumpControl();
+    // read sensor values
+    readSensor();
 
-  // create log entry
-  if ((0 == g_LogTimer_l) && !g_LogDone_bl) {
-    addLogEntryAndPushToServer(true);
-    g_LogDone_bl = true;
-  } else if (0 != g_LogTimer_l) {
-    g_LogDone_bl = false;
+    // pump control
+    pumpControl();
+
+    // create log entry
+    if ((0 == g_LogTimer_l) && !g_LogDone_bl) {
+      addLogEntryAndPushToServer(true);
+      g_LogDone_bl = true;
+    } else if (0 != g_LogTimer_l) {
+      g_LogDone_bl = false;
+    }
   }
 
   // check if key is pressed
@@ -275,6 +297,8 @@ void loop()
       autoCalibration();
     } else if (Key_s.equals("k") || Key_s.equals("K")) {
       fastPumpCheck();
+    } else if (Key_s.equals("b") || Key_s.equals("B")) {
+      deactivateThresholds();
     } else if (Key_s.equals("w") || Key_s.equals("W")) {
 #if (0 != gd_WATERING_SYSTEM_IOT)
       writeThresholdSD();
@@ -370,12 +394,17 @@ void reset()
   defaultThreshold();  
 #endif
 
-  // set variables
-  g_DebugMode_bl = false;
-  g_PrintInfo_bl = false;
-  g_LogTimer_l = 0;
+  // set global variables
+  g_Timer_i = 0;
   g_TotalTime_l = 0;
+  g_HeartBeat_bl = false;
+  g_PrintInfo_bl = false;
+  g_DebugMode_bl = false;
+  g_LogTimer_l = 0;
   g_LogDone_bl = false;
+  g_Idle_bl = true;
+  g_IdleTime_i = 0;
+  g_IdleHeartBeat_bl = false;
 
   g_Log_st.Index_i = 0;
   for (int k = 0; k < g_LogSize_ic; ++k) {
@@ -403,7 +432,7 @@ void defaultThreshold()
 //  T5 time out error state      : 86400 = 24 h
 
   for (int i = 0; i < g_NumPlants_ic; ++i) {  
-    g_Plants_pst[i].ThresholdLow_i = 2000; // large number as default to deactive: force user defined setting
+    g_Plants_pst[i].ThresholdLow_i = 1; // small number as default to deactive: force user defined setting
     g_Plants_pst[i].ThresholdHigh_i = 2100; //large number as default to deactivate: force user defined setting
     g_Plants_pst[i].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
     g_Plants_pst[i].TimeOutPumpOn_l = 5L; 
@@ -484,6 +513,22 @@ void defaultThreshold()
     g_Plants_pst[7].TimeWait_l = 21600L; // 6 hours
     g_Plants_pst[7].TimeOutPumpOff_l = 21600L; // 2 days + TimeWait
     g_Plants_pst[7].TimeOutErrorState_l = 21600L; // 1 hour
+}
+
+
+//******************************************************************************************
+//  deactivateThresholds
+//******************************************************************************************
+void deactivateThresholds()
+{
+  // stop all pumps and deactivate thresholds by setting small/large values
+  softReset(true);
+  for (int i = 0; i < g_NumPlants_ic; ++i) {
+    g_Plants_pst[i].ThresholdLow_i = 1; // small number as default to deactive: force user defined setting
+    g_Plants_pst[i].ThresholdHigh_i = 2100; //large number as default to deactivate: force user defined setting
+    g_Plants_pst[i].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
+  }
+  printInfo();
 }
 
 
@@ -1091,6 +1136,11 @@ ISR(TIMER1_COMPA_vect)
   }
   if (++g_LogTimer_l >= g_LogInterval_lc) {
     g_LogTimer_l = 0;
+  }
+  if (g_Idle_bl) {
+    if (++g_IdleTime_i >= g_IdleTimeSeconds_ic) {
+      g_Idle_bl = false;
+    }
   }
 }
 

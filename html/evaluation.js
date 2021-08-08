@@ -186,7 +186,7 @@ function showMainData() {
   // 86400
   // 86400
   //
-  // => numSetEntry = 8; idxLow=0; idxHigh=1
+  // => numSetEntry = 8; idxLow = 0; idxHigh = 1
   const numSetEntry=8;
   const idxLow=0;
   const idxHigh=1;
