@@ -30,7 +30,7 @@ const int g_NumPlants_ic = 8;
 //                  nr. 7:          relay output only
 
 // version to print on console
-const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.08.01 a"};
+const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.08.08"};
 
 // pin connection of sensor and pump (relais module) to arduino board
 const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A4, A3, A3, A3, A3}; // A3 not used here
@@ -432,7 +432,7 @@ void defaultThreshold()
 //  T5 time out error state      : 86400 = 24 h
 
   for (int i = 0; i < g_NumPlants_ic; ++i) {  
-    g_Plants_pst[i].ThresholdLow_i = 1; // small number as default to deactive: force user defined setting
+    g_Plants_pst[i].ThresholdLow_i = 2000; // large number as default to deactive: force user defined setting
     g_Plants_pst[i].ThresholdHigh_i = 2100; //large number as default to deactivate: force user defined setting
     g_Plants_pst[i].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
     g_Plants_pst[i].TimeOutPumpOn_l = 5L; 
@@ -524,8 +524,12 @@ void deactivateThresholds()
   // stop all pumps and deactivate thresholds by setting small/large values
   softReset(true);
   for (int i = 0; i < g_NumPlants_ic; ++i) {
-    g_Plants_pst[i].ThresholdLow_i = 1; // small number as default to deactive: force user defined setting
+    // pump should be off after softReset, but if pump is on then pump will go to off state because of large ThresholdLow value
+    g_Plants_pst[i].ThresholdLow_i = 2000; // large number as default to deactive: force user defined setting
+
+    // force pump to stay in off state by using high threshold value
     g_Plants_pst[i].ThresholdHigh_i = 2100; //large number as default to deactivate: force user defined setting
+
     g_Plants_pst[i].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
   }
   printInfo();
