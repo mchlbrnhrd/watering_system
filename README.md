@@ -30,6 +30,7 @@ Connect digital outputs of arduino (microcontroller) with relay module inputs. C
 
 # Terminal
 Type 'h' to show help.
+* __v__ _version_: Show version of software
 * __d__ _debug_: Print continously debug informations
 * __s__ _soft reset_ : reset timer and switch off pump
 * __r__ _reset_: hard reset all values, thresholds, timer values and switch off pump
@@ -37,8 +38,11 @@ Type 'h' to show help.
 * __t__ _terminal_: interact with software and change threshold and timer values
 * __m__ _manual mode_: switch on and off each pump manually
 * __l__ _read log_: read log values of each channel
+* __p__ _push_: add log entry and push to server (IoT version)
 * __a__ _auto calibration_: wizard to set threshold values
-* __w__ _write settings_: write settings to SD card and push them to server
+* __w__ _write settings_: write/save settings to SD card and push them to server
+* __k__ _pump check_: fast pump check (activate all pumps for a user defined time)
+* __b__ _break_: break system, i.e. deactivate thresholds by setting small and large values so pump will not go on
 * __c__ _cancel_: go back to main software functionality from each menu point
 
 _Hint_: Connect reset pin with 10 k Ohm pull up resistor and 10 nF capacitor against ground to avoid reset when connecting computer via USB cable to running system. Otherwise internal log data will be cleared. When using Arduino Yún this is not necessary: log files will be stored on SD card and on server.
@@ -48,6 +52,10 @@ Type 't' and information of all channels is printed. Type channel number to edit
 
 ## Auto Calibration
 Type 'a'. Afterwards type channel number. Make sure sensor is dry. Then type '1'. Pump is switched on. When watering is sufficient then type '0' to stop pump. The sensor values are taken to set the new threshold.
+
+## Startup
+* Wait for three minutes to make sure linux system is ready (IoT version). LED is blinking in the first minute one time, in the second minute two times and in the third minute three times to signalize progress.
+* Stay for two minutes in idle mode. No pump control during this mode. LED is signalizing progress. First 30 seconds blinking for one time, next 30 seconds blinking two times and so on. During idle mode key _b_ can be pressed to set all threshold values to small/large value to avoid starting pump automatically. This is useful when setting up the system for the first time. Otherwise pump will start immediately and calibration cannot be done in an exact way because soil may be already wet. But when no key is pressed the system will run after idle mode automatically with predefined settings. This is necessary to bring up system in a stable mode after unexpected power cycle. And with pressing _b_ you can avoid running system when required.
 
 # IoT
 ![IoT principle](doc/scetch_iot_small.jpg)
@@ -121,4 +129,3 @@ Here an example of settings:<br />
 Beside graphically visualisation log file can be read out as text:<br />
 <img src="doc/log_example.png" width="500"  title="log file">
 <br />
-
