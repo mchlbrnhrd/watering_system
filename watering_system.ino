@@ -30,7 +30,7 @@ const int g_NumPlants_ic = 8;
 //                  nr. 7:          relay output only
 
 // version to print on console
-const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.08.08"};
+const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.08.09"};
 
 // pin connection of sensor and pump (relais module) to arduino board
 const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A4, A3, A3, A3, A3}; // A3 not used here
@@ -1356,6 +1356,7 @@ void readThresholdSD()
     int Channel_i = 0;
     int Index_i = 0;
     String s="";
+    int numLines_i = 0;
     while(thresholdFile.available() && Channel_i < g_NumPlants_ic) {
       char c = thresholdFile.read();
       if ('\n' != c) {
@@ -1364,6 +1365,7 @@ void readThresholdSD()
         // newline
         long value = (long)s.toInt();
         s = "";
+        ++numLines_i;
         switch (Index_i) {
           case 0:
             g_Plants_pst[Channel_i].ThresholdLow_i = (int)value;
@@ -1401,6 +1403,10 @@ void readThresholdSD()
       }
     }
     thresholdFile.close();    
+    if (numLines_i < 7) {
+      // invalid or empty file found
+      defaultThreshold();
+    }
   } else {
     defaultThreshold();
   }
