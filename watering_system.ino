@@ -43,7 +43,8 @@ const int g_IdleTimeSeconds_ic = 120; // stay for IdleTimeSeconds in idle mode: 
 
 // store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
-const char g_PgmHelp_pc[] PROGMEM = {"h: help; v: version; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode;\nl: read log; p: add log entry and push to server; a: auto calibration; w: write/save threshold values; k: fast pump check; b: break (deactivate thresholds); c: cancel/continue"};
+const char g_PgmHelp0_pc[] PROGMEM = {"h: help; v: version; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode;"};
+const char g_PgmHelp1_pc[] PROGMEM = {"l: read log; p: add log entry and push to server; a: auto calibration; w: write/save threshold values; k: fast pump check; b: break (deactivate thresholds); c: cancel/continue"};
 const char g_PgmInfo_pc[] PROGMEM = {"Info"};
 const char g_PgmSensor_pc[] PROGMEM = {"Sensor "};
 const char g_PgmTime_pc[] PROGMEM = {"Time: "};
@@ -270,7 +271,8 @@ void loop()
     String Key_s = terminalReadString();
     Key_s.trim();
     if (Key_s.equals("h") || Key_s.equals("H")) {
-      terminalPrintlnPgm(g_PgmHelp_pc);
+      terminalPrintlnPgm(g_PgmHelp0_pc);
+      terminalPrintlnPgm(g_PgmHelp1_pc);
     } else if (Key_s.equals("v") || Key_s.equals("V")) {
       terminalPrintlnPgm(g_PgmVersion_pc);
     } else if (Key_s.equals("t") || Key_s.equals("T")) {
@@ -531,6 +533,10 @@ void deactivateThresholds()
     g_Plants_pst[i].ThresholdHigh_i = 2100; //large number as default to deactivate: force user defined setting
 
     g_Plants_pst[i].ThresholdExpectedChange_i = 2200; // use large value to deactivate this function
+
+    if (0 == g_Plants_pst[i].TimeOutPumpOff_l) {
+      g_Plants_pst[i].TimeOutPumpOff_l = 86400L; // one day
+    }
   }
   printInfo();
 }
