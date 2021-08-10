@@ -36,15 +36,15 @@ const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.08.09"};
 const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A4, A3, A3, A3, A3}; // A3 not used here
 const int g_PumpPin_pic[g_NumPlants_ic] = {10,11, 12, 4,    5, 6, 8, 9};
 
-const int g_LogSize_ic = 40; // number of log entries
+const int g_LogSize_ic = 20; // number of log entries
 const long g_LogInterval_lc = 60L*60L; // log interval 1 h
 const int g_IdleTimeSeconds_ic = 120; // stay for IdleTimeSeconds in idle mode: usefull when setup watering system first time; avoid starting pump automatically
 // after time out normal watering system mode.a I.e. after (unwanted) power cycle system will continue but it is possible to stop for calibration
 
 // store text in PROGMEM
-const char g_PgmWatering_pc[] PROGMEM = {"Watering system by Michael Bernhard. Type 'h' for help."};
-const char g_PgmHelp0_pc[] PROGMEM = {"h: help; v: version; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode;"};
-const char g_PgmHelp1_pc[] PROGMEM = {"l: read log; p: add log entry and push to server; a: auto calibration; w: write/save threshold values; k: fast pump check; b: break (deactivate thresholds); c: cancel/continue"};
+const char g_PgmWatering_pc[] PROGMEM = {"by MB"}; //{"Watering system by Michael Bernhard. Type 'h' for help."};
+const char g_PgmHelp0_pc[] PROGMEM = {"hvdsritm"}; //: help; v: version; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode;"};
+const char g_PgmHelp1_pc[] PROGMEM = {"lpawkbc"};// read log; p: add log entry and push to server; a: auto calibration; w: write/save threshold values; k: fast pump check; b: break (deactivate thresholds); c: cancel/continue"};
 const char g_PgmInfo_pc[] PROGMEM = {"Info"};
 const char g_PgmSensor_pc[] PROGMEM = {"Sensor "};
 const char g_PgmTime_pc[] PROGMEM = {"Time: "};
@@ -61,25 +61,25 @@ const char g_PgmDebugMode_pc[] PROGMEM = {"Debug mode "};
 const char g_PgmLogStart_pc[] PROGMEM = {"--- log start --- <mode, sensor value, time stamp>"};
 const char g_PgmLogEnd_pc[] PROGMEM = {"--- log end ---"};
 
-const char g_PgmC1_pc[] PROGMEM = {"current time                   : "};
-const char g_PgmT1_pc[] PROGMEM = {"[T1] timeout pump on           : "};
-const char g_PgmT2_pc[] PROGMEM = {"[T2] time pump on max          : "};
-const char g_PgmT3_pc[] PROGMEM = {"[T3] time wait                 : "};
-const char g_PgmT4_pc[] PROGMEM = {"[T4] time out pump off         : "};
-const char g_PgmT5_pc[] PROGMEM = {"[T5] time out error state      : "};
-const char g_PgmS1_pc[] PROGMEM = {"[S1] threshold low             : "};
-const char g_PgmS2_pc[] PROGMEM = {"[S2] threshold high            : "};
-const char g_PgmS3_pc[] PROGMEM = {"[S3] threshold expected change : "};
+const char g_PgmC1_pc[] PROGMEM = {"current time             : "};
+const char g_PgmT1_pc[] PROGMEM = {"[T1] timeout pump on     : "};
+const char g_PgmT2_pc[] PROGMEM = {"[T2] time pump on max    : "};
+const char g_PgmT3_pc[] PROGMEM = {"[T3] time wait           : "};
+const char g_PgmT4_pc[] PROGMEM = {"[T4] time out pump off   : "};
+const char g_PgmT5_pc[] PROGMEM = {"[T5] time out error state: "};
+const char g_PgmS1_pc[] PROGMEM = {"[S1] thrs low            : "};
+const char g_PgmS2_pc[] PROGMEM = {"[S2] thres high          : "};
+const char g_PgmS3_pc[] PROGMEM = {"[S3] thres expec. change : "};
 const char g_PgmM1_pc[] PROGMEM = {"mode pump ready"};
 const char g_PgmM2_pc[] PROGMEM = {"mode pump on   "};
 const char g_PgmM3_pc[] PROGMEM = {"mode pump off  "};
 const char g_PgmM4_pc[] PROGMEM = {"mode pump error"};
 
-const char g_PgmErrR1_pc[] PROGMEM = {": Err R1: Switch off pump due of timeout. Check sensor. "};
-const char g_PgmErrR6_pc[] PROGMEM = {": Err R6: Force pump due of timeout T4. Check sensor. "};
+const char g_PgmErrR1_pc[] PROGMEM = {": Err R1"}; // Switch off pump due of timeout. Check sensor. "};
+const char g_PgmErrR6_pc[] PROGMEM = {": Err R6"}; // Force pump due of timeout T4. Check sensor. "};
 const char g_PgmInfoR7_pc[] PROGMEM = {": Info: Leave Error state. R7"};
-const char g_PgmDebugR2_pc[] PROGMEM = {": pump on (threshold) R2"};
-const char g_PgmDebugR3_pc[] PROGMEM = {": pump off (threshold) R3"};
+const char g_PgmDebugR2_pc[] PROGMEM = {": pump on (thres) R2"};
+const char g_PgmDebugR3_pc[] PROGMEM = {": pump off (thres) R3"};
 const char g_PgmDebugR4_pc[] PROGMEM = {": pump off (time max on) R4"};
 const char g_PgmDebugR5_pc[] PROGMEM = {": ready R5"};
 
@@ -548,7 +548,10 @@ void deactivateThresholds()
 void readSensor()
 {
   for (int i=0; i < g_NumPlants_ic; ++i) {
-    g_Plants_pst[i].Sensor_i = analogReadMean(g_SensorPin_pic[i], 5, 10);
+    const int newValue_i = analogReadMean(g_SensorPin_pic[i], 5, 1);
+    if (newValue_i < 1000) { // avoid unexpected high value
+      g_Plants_pst[i].Sensor_i = newValue_i;
+    }
   }
 }
 
@@ -570,7 +573,6 @@ void pumpControl()
         }
       } else if (g_Plants_pst[i].CurrTime_l > g_Plants_pst[i].TimeOutPumpOff_l) {
          g_Plants_pst[i].Mode_enm = modePumpOn;
-         pumpOn(i);
          terminalPrint(i);
          terminalPrintPgm(g_PgmErrR6_pc);
          terminalPrint(g_Plants_pst[i].CurrTime_l);
@@ -810,7 +812,7 @@ void autoCalibration()
     if (Key_s.equals("0") ) {
       g_Plants_pst[Channel_i].Mode_enm = modePumpReady;
       pumpOff(Channel_i);
-      delay(1000);  // wait a second before starting meassurement
+      delay(2000);  // wait two seconds before starting meassurement
       // meassurement for threshold low (wet soil) will take one second
       ThresholdLow_l = (long)analogReadMean(g_SensorPin_pic[Channel_i], 10, 100);
     } else {
@@ -1214,6 +1216,9 @@ void writeLogEntrySD()
         for (int Channel_i=0; Channel_i < g_NumPlants_ic; ++Channel_i) {
           uint16_t data_ui16 = g_Log_st.Entry_pst[k].Data_pui16[Channel_i];
           int sensor_i = (int)(data_ui16 & 0xFFFU);
+          int mode_i = (data_ui16 >> 12);
+          logEntry += mode_i;
+          logEntry += ",";
           logEntry += sensor_i;
           if (Channel_i + 1 < g_NumPlants_ic) {
             logEntry += ",";

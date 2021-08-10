@@ -3,9 +3,9 @@
 //=========================================
 function loadFile(filePathName) {
   // data format:
-  // x0,y_a0,y_b0,y_c0,y_d0
-  // x1,y_a1,y_b1,y_c1,y_d1
-  // x2,y_a2,y_b2,y_c2,y_d2
+  // x0, modea0, y_a0, modeb0, y_b0, modec0, y_c0, moded0, y_d0
+  // x1, modea1, y_a1, modeb1, y_b1, modec1, y_c1, moded1, y_d1
+  // x2, modea2, y_a2, modeb1, y_b2, modec2, y_c2, moded2, y_d2
   var content = null;
   var xmlhttp = new XMLHttpRequest();
   xmlhttp.open("GET", filePathName, false);
@@ -75,7 +75,7 @@ function showMainData() {
         if (curLine != "") {
           var curLineSplit = curLine.split(",");
           cancel=false;
-          for (var j=0; j < curLineSplit.length; ++j) {
+          for (var j=0; j < curLineSplit.length; j+=2) {
             if (0 == curLineSplit[j]) {
               cancel=true;
             }
@@ -84,7 +84,7 @@ function showMainData() {
             var newTime = parseInt(curLineSplit[0], 10) + timeOffset;
             curLineSplit[0] = newTime.toString();
             var newDataLine = "";
-            var length = curLineSplit.length > maxNumSensor+1 ? maxNumSensor+1: curLineSplit.length;
+            var length = curLineSplit.length > (maxNumSensor*2)+1 ? (maxNumSensor*2)+1: curLineSplit.length;
             for (var m=0; m < length; ++m) {
               newDataLine += curLineSplit[m];
               if (m+1 < length) {
@@ -125,10 +125,13 @@ function showMainData() {
   for (var i = 0; i < dataLines.length; i++) {
     var curLine = dataLines[i];
     if (curLine != "") {
+      // example: time, modeA, valA, modeB, valB, modeC, valC,...
+      // 3600,1,378,1,453,1,598,1,297,1,277,1,271,1,278,1,281
+      // => every second entry is mode and can be 0
       var curLineSplit = curLine.split(",");
       // ignore invalid data sets (at least one entry is 0)
       var cancel=false;
-      for (var j=0; j < curLineSplit.length; ++j) {
+      for (var j=0; j < curLineSplit.length; j+=2) {
         if (0 == curLineSplit[j]) {
           cancel=true;
         }
@@ -145,9 +148,11 @@ function showMainData() {
           if (x < min_x) {
             min_x = x;
           }
-          var length = curLineSplit.length > maxNumSensor+1 ? maxNumSensor+1 : curLineSplit.length;
-          for (var k = 1; k < length; k++) {
-            if (showData[k-1]) {
+          // length: time + N * (entryMode + entryValue) = 1 + N*2
+          var length = curLineSplit.length > (maxNumSensor*2)+1 ? (maxNumSensor*2)+1 : curLineSplit.length;
+          for (var k = 2; k < length; k+=2) {
+            var k_simple = k/2-1;
+            if (showData[k_simple]) {
               var y=parseInt(curLineSplit[k]);
               if (y > 0) {
                 if (y > max_y) {
@@ -265,42 +270,45 @@ function showMainData() {
   }
 
   // draw data
-  if (numColumns > maxNumSensor+1) {
-    numColumns = maxNumSensor+1;
+  if (numColumns > (maxNumSensor*2)+1) {
+    numColumns = (maxNumSensor*2)+1;
   }
-  for (var k=1; k < numColumns; k++) {
-    switch (k) {
-      case 1:
+  for (var k=2; k < numColumns; k+=2) {
+    var k_simple=k/2-1;
+    switch (k_simple) {
+      case 0:
       ctx.strokeStyle = "#0096E6";
       break;
-      case 2:
+      case 1:
       ctx.strokeStyle = "#FA1E00";
       break;
-      case 3:
+      case 2:
       ctx.strokeStyle = "#64C83C";
       break;
-      case 4:
+      case 3:
       ctx.strokeStyle = "#F0D000";
       break;
       default:
       ctx.strokeStyle = "#000000";
     }
-    if (showData[k-1]) {
+    if (showData[k_simple]) {
       ctx_legend.strokeStyle = ctx.strokeStyle;
       ctx_legend.beginPath();
-      ctx_legend.moveTo(10, k*20);
-      ctx_legend.lineTo(190, k*20);
+      ctx_legend.moveTo(10, k_simple*20);
+      ctx_legend.lineTo(190, k_simple*20);
       ctx_legend.stroke();
 
       ctx.beginPath();
       var first = 1;
       for (var i = 0; i < dataLines.length; i++) {
         var curLine = dataLines[i];
+        // example: time, modeA, valA, modeB, valB, modeC, valC,...
+        // 3600,1,378,1,453,1,598,1,297,1,277,1,271,1,278,1,281
         if (curLine != "") {
           var curLineSplit = curLine.split(",");
           // ignore invalid data sets (at least one entry is 0 is invalid)
           cancel=false;
-          for (var j=0; j < curLineSplit.length; ++j) {
+          for (var j=0; j < curLineSplit.length; j+=2) {
             if (0 == curLineSplit[j]) {
               cancel=true;
             }
@@ -417,7 +425,7 @@ function showSelData() {
       if (x < min_x) {
         min_x = x;
       }
-      for (var k = 1; k < curLineSplit.length; k++) {
+      for (var k = 2; k < curLineSplit.length; k+=2) {
         var y=parseInt(curLineSplit[k]);
         if (y > 0) {
           if (y > max_y) {
@@ -431,21 +439,22 @@ function showSelData() {
     }
   }
   // draw data
-  if (numColumns > maxNumSensor+1) {
-    numColumns = maxNumSensor+1;
+  if (numColumns > (maxNumSensor*2)+1) {
+    numColumns = (maxNumSensor*2)+1;
   }
-  for (var k=1; k < numColumns; k++) {
+  for (var k=2; k < numColumns; k+=2) {
+    var k_simple=k/2-1;
     switch (k) {
-      case 1:
+      case 0:
       ctx.strokeStyle = "#0096E6";
       break;
-      case 2:
+      case 1:
       ctx.strokeStyle = "#FA1E00";
       break;
-      case 3:
+      case 2:
       ctx.strokeStyle = "#64C83C";
       break;
-      case 4:
+      case 3:
       ctx.strokeStyle = "#F0D000";
       break;
       default:
