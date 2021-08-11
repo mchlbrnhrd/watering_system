@@ -30,7 +30,7 @@ const int g_NumPlants_ic = 8;
 //                  nr. 7:          relay output only
 
 // version to print on console
-const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.08.09"};
+const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.08.11"};
 
 // pin connection of sensor and pump (relais module) to arduino board
 const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A4, A3, A3, A3, A3}; // A3 not used here
@@ -151,6 +151,7 @@ bool g_LogDone_bl = false;
 bool g_Idle_bl = true;
 int g_IdleTime_i = 0;
 bool g_IdleHeartBeat_bl = false;
+bool g_PrioMode_bl = false; // when pump is on checking has high prio
 
 
 //******************************************************************************************
@@ -250,11 +251,15 @@ void loop()
       }
     }
 
-    // read sensor values
-    readSensor();
+    if (g_PrioMode_bl) {
+      prioModePumpControl();
+    } else {
+      // read sensor values
+      readSensor();
 
-    // pump control
-    pumpControl();
+      // pump control
+      pumpControl();
+    }
 
     // create log entry
     if ((0 == g_LogTimer_l) && !g_LogDone_bl) {
@@ -266,7 +271,7 @@ void loop()
   }
 
   // check if key is pressed
-  while (terminalAvailable() > 0) {
+  while ((terminalAvailable() > 0) && (!g_PrioMode_bl)) {
     TIMSK1 &=~(1 << OCIE1A);
     String Key_s = terminalReadString();
     Key_s.trim();
@@ -333,6 +338,7 @@ void softReset(bool f_CurrTime_bl)
     pumpOff(i); // pump off
   }
   g_Timer_i = 0;
+  g_PrioMode_bl = false;
 }
 
 
@@ -407,6 +413,7 @@ void reset()
   g_Idle_bl = true;
   g_IdleTime_i = 0;
   g_IdleHeartBeat_bl = false;
+  g_PrioMode_bl = false;
 
   g_Log_st.Index_i = 0;
   for (int k = 0; k < g_LogSize_ic; ++k) {
@@ -547,10 +554,37 @@ void deactivateThresholds()
 //******************************************************************************************
 void readSensor()
 {
-  for (int i=0; i < g_NumPlants_ic; ++i) {
-    const int newValue_i = analogReadMean(g_SensorPin_pic[i], 5, 1);
-    if (newValue_i < 1000) { // avoid unexpected high value
+  if (g_PrioMode_bl) {
+    for (int i=0; i < g_NumPlants_ic; ++i) {
+      g_Plants_pst[i].Sensor_i = analogRead(g_SensorPin_pic[i]);
+    }
+  } else {
+    for (int i=0; i < g_NumPlants_ic; ++i) {
+      const int newValue_i = analogReadMean(g_SensorPin_pic[i], 5, 10);
       g_Plants_pst[i].Sensor_i = newValue_i;
+    }
+  }
+}
+
+
+//******************************************************************************************
+//  pump control
+//******************************************************************************************
+void prioModePumpControl()
+{ g_PrioMode_bl = false;
+  for (int i=0; i < g_NumPlants_ic; ++i) {
+    bool TimerReset_bl = false;
+    if (modePumpOn == g_Plants_pst[i].Mode_enm) {
+      // ************* mode pump on **************
+      g_Plants_pst[i].Sensor_i = analogRead(g_SensorPin_pic[i]);
+      TimerReset_bl = pumpControlOnCheck(i);
+    }
+    
+    if (TimerReset_bl) {
+      g_Plants_pst[i].CurrTime_l = 0;
+    }
+    if (modePumpOn == g_Plants_pst[i].Mode_enm) {
+      g_PrioMode_bl = true;
     }
   }
 }
@@ -561,6 +595,7 @@ void readSensor()
 //******************************************************************************************
 void pumpControl()
 {
+  g_PrioMode_bl = false;
   for (int i=0; i < g_NumPlants_ic; ++i) {
     bool TimerReset_bl = false;
     if (modePumpReady == g_Plants_pst[i].Mode_enm) {
@@ -587,35 +622,7 @@ void pumpControl()
       
     } else if (modePumpOn == g_Plants_pst[i].Mode_enm) {
       // ************* mode pump on **************
-      if (g_Plants_pst[i].CurrTime_l > g_Plants_pst[i].TimeOutPumpOn_l) {
-        if (g_Plants_pst[i].Sensor_i > g_Plants_pst[i].ThresholdExpectedChange_i) {
-          g_Plants_pst[i].Mode_enm = modePumpError;
-          pumpOff(i);
-          terminalPrint(i);
-          terminalPrintPgm(g_PgmErrR1_pc);
-          terminalPrint(g_Plants_pst[i].Sensor_i);
-          terminalPrint(", ");
-          terminalPrintln(g_Plants_pst[i].ThresholdExpectedChange_i);
-          TimerReset_bl = true;
-        }
-        if (g_Plants_pst[i].Sensor_i < g_Plants_pst[i].ThresholdLow_i) {
-          g_Plants_pst[i].Mode_enm = modePumpOff;
-          pumpOff(i);
-          TimerReset_bl = true;
-          if (g_DebugMode_bl) {
-            terminalPrint(i);
-            terminalPrintlnPgm(g_PgmDebugR3_pc);
-          }
-        } else if (g_Plants_pst[i].CurrTime_l  > g_Plants_pst[i].TimePumpOnMax_l) {
-          g_Plants_pst[i].Mode_enm = modePumpOff;
-          pumpOff(i);
-          TimerReset_bl = true;
-          if (g_DebugMode_bl) {
-            terminalPrint(i);
-            terminalPrintlnPgm(g_PgmDebugR4_pc);
-          }
-        }
-      }
+      TimerReset_bl = pumpControlOnCheck(i);
 
       
     } else if (modePumpOff == g_Plants_pst[i].Mode_enm) {
@@ -643,9 +650,53 @@ void pumpControl()
     if (TimerReset_bl) {
       g_Plants_pst[i].CurrTime_l = 0;
     }
+
+    if (modePumpOn == g_Plants_pst[i].Mode_enm) {
+      g_PrioMode_bl = true;
+    }
   }
 }
 
+
+//******************************************************************************************
+//  pumpControlOnCheck; return TimerReset
+//******************************************************************************************
+bool pumpControlOnCheck(const int Channel_i)
+{
+  bool TimerReset_bl = false;
+
+  if (g_Plants_pst[Channel_i].CurrTime_l > g_Plants_pst[Channel_i].TimeOutPumpOn_l) {
+    if (g_Plants_pst[Channel_i].Sensor_i > g_Plants_pst[Channel_i].ThresholdExpectedChange_i) {
+      g_Plants_pst[Channel_i].Mode_enm = modePumpError;
+      pumpOff(Channel_i);
+      terminalPrint(Channel_i);
+      terminalPrintPgm(g_PgmErrR1_pc);
+      terminalPrint(g_Plants_pst[Channel_i].Sensor_i);
+      terminalPrint(", ");
+      terminalPrintln(g_Plants_pst[Channel_i].ThresholdExpectedChange_i);
+      TimerReset_bl = true;
+    }
+    if (g_Plants_pst[Channel_i].Sensor_i < g_Plants_pst[Channel_i].ThresholdLow_i) {
+      g_Plants_pst[Channel_i].Mode_enm = modePumpOff;
+      pumpOff(Channel_i);
+      TimerReset_bl = true;
+      if (g_DebugMode_bl) {
+        terminalPrint(Channel_i);
+        terminalPrintlnPgm(g_PgmDebugR3_pc);
+      }
+    } else if (g_Plants_pst[Channel_i].CurrTime_l  > g_Plants_pst[Channel_i].TimePumpOnMax_l) {
+      g_Plants_pst[Channel_i].Mode_enm = modePumpOff;
+      pumpOff(Channel_i);
+      TimerReset_bl = true;
+      if (g_DebugMode_bl) {
+        terminalPrint(Channel_i);
+        terminalPrintlnPgm(g_PgmDebugR4_pc);
+      }
+    }
+  }
+
+  return TimerReset_bl;
+}
 
 //******************************************************************************************
 //  terminal
@@ -877,6 +928,9 @@ void printShortInfo()
 {
   terminalPrintPgm(g_PgmTime_pc);
   terminalPrintln(g_TotalTime_l);
+  if (g_PrioMode_bl) {
+    terminalPrintln("prio");
+  }
   for (int i=0; i < g_NumPlants_ic; ++i) {
     terminalPrintPgm(g_PgmSensor_pc);
     terminalPrint(i);
@@ -1066,17 +1120,24 @@ void pumpOff(int Channel_i)
 int analogReadMean(const int Pin_i, const int SampleNr_ci, const int Delay_i)
 {
   int Ret_i = 0; // return 0 when parameter are invalid
-  if (SampleNr_ci > 0) {
-    long Value_l = 0;
-    for (int i=0; i < SampleNr_ci; ++i) {
-      Value_l += (long)analogRead(Pin_i);
+  int UsedSampleNr_i = 0;
+  long Value_l = 0;
+  for (int i=0; i < SampleNr_ci; ++i) {
+    int ValueTmp_i = analogRead(Pin_i);
+    if (ValueTmp_i < 1000) // avoid unexpected high value
+    {
+      Value_l += (long)ValueTmp_i;
+      ++UsedSampleNr_i;
       if (i+1  < SampleNr_ci) {
         delay(Delay_i);
       }
     }
-    Value_l = Value_l / SampleNr_ci;
-    Ret_i = (int) Value_l;
   }
+  if (UsedSampleNr_i > 0) {
+    Value_l = Value_l / UsedSampleNr_i;
+  }
+
+  Ret_i = (int) Value_l;
   return Ret_i;
 }
 
