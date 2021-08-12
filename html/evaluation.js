@@ -28,6 +28,10 @@ showData0.checked=true;
 showData1.checked=true;
 showData2.checked=true;
 showData3.checked=true;
+var dataShow = document.getElementById("dataShow");
+var modeShow = document.getElementById("modeShow");
+dataShow.checked=true;
+modeShow.checked=true;
 showMainData();
 
 
@@ -37,6 +41,11 @@ function showMainData() {
   var showData2 = document.getElementById("showData2");
   var showData3 = document.getElementById("showData3");
   var showData = [showData0.checked, showData1.checked, showData2.checked, showData3.checked];
+
+  var dataShowEl = document.getElementById("dataShow");
+  var modeShowEl = document.getElementById("modeShow");
+  var dataShow=dataShowEl.checked;
+  var modeShow=modeShowEl.checked;
 
   var concatPrev0 = document.getElementById("concatPrev0");
   var concatPrev1 = document.getElementById("concatPrev1");
@@ -291,7 +300,7 @@ function showMainData() {
       default:
       ctx.strokeStyle = "#000000";
     }
-    if (showData[k_simple]) {
+    if (showData[k_simple] && dataShow) {
       ctx_legend.strokeStyle = ctx.strokeStyle;
       ctx_legend.beginPath();
       ctx_legend.moveTo(10, k_simple*20);
@@ -331,6 +340,59 @@ function showMainData() {
         }
       }
       ctx.stroke();
+    }
+  }
+
+  // draw mode
+  for (var k_mode=1; k_mode < numColumns; k_mode+=2) {
+    var k_simple=(k_mode+1)/2-1;
+    switch (k_simple) {
+      case 0:
+      ctx.strokeStyle = "#0096E6";
+      break;
+      case 1:
+      ctx.strokeStyle = "#FA1E00";
+      break;
+      case 2:
+      ctx.strokeStyle = "#64C83C";
+      break;
+      case 3:
+      ctx.strokeStyle = "#F0D000";
+      break;
+      default:
+      ctx.strokeStyle = "#000000";
+    }
+    if (showData[k_simple] && modeShow) {
+      for (var i = 0; i < dataLines.length; i++) {
+        var curLine = dataLines[i];
+        // example: time, modeA, valA, modeB, valB, modeC, valC,...
+        // 3600,1,378,1,453,1,598,1,297,1,277,1,271,1,278,1,281
+        if (curLine != "") {
+          var curLineSplit = curLine.split(",");
+          // ignore invalid data sets (at least one entry is 0 is invalid)
+          cancel=false;
+          for (var j=0; j < curLineSplit.length; j+=2) {
+            if (0 == curLineSplit[j]) {
+              cancel=true;
+            }
+          }
+          if (!cancel) {
+            if (curLineSplit.length >= numColumns) {
+              var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*800;
+              var mode=parseInt(curLineSplit[k_mode]);
+              if (mode > 1) {
+                ctx.save();
+                ctx.setLineDash([3,10]);
+                ctx.beginPath();
+                ctx.moveTo(x,0);
+                ctx.lineTo(x,500);
+                ctx.stroke();
+                ctx.restore();
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
@@ -444,7 +506,8 @@ function showSelData() {
   }
   for (var k=2; k < numColumns; k+=2) {
     var k_simple=k/2-1;
-    switch (k) {
+    var k_mode=k-1;
+    switch (k_simple) {
       case 0:
       ctx.strokeStyle = "#0096E6";
       break;
@@ -469,6 +532,7 @@ function showSelData() {
       if (curLineSplit.length >= numColumns) {
         var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*800;
         var y=parseInt(curLineSplit[k]);
+        var mode=parseInt(curLineSplit[k_mode]);
         if (y > 0) {
           var y=(y-min_y)/(max_y-min_y)*500;
           if (0 != first) {
