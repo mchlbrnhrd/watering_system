@@ -151,7 +151,6 @@ bool g_LogDone_bl = false;
 bool g_Idle_bl = true;
 int g_IdleTime_i = 0;
 bool g_IdleHeartBeat_bl = false;
-bool g_PrioMode_bl = false; // when pump is on checking has high prio
 
 
 //******************************************************************************************
@@ -251,15 +250,11 @@ void loop()
       }
     }
 
-    if (g_PrioMode_bl) {
-      prioModePumpControl();
-    } else {
-      // read sensor values
-      readSensor();
+    // read sensor values
+    readSensor();
 
-      // pump control
-      pumpControl();
-    }
+    // pump control
+    pumpControl();
 
     // create log entry
     if ((0 == g_LogTimer_l) && !g_LogDone_bl) {
@@ -271,7 +266,7 @@ void loop()
   }
 
   // check if key is pressed
-  while ((terminalAvailable() > 0) && (!g_PrioMode_bl)) {
+  while (terminalAvailable() > 0) {
     TIMSK1 &=~(1 << OCIE1A);
     String Key_s = terminalReadString();
     Key_s.trim();
@@ -338,7 +333,6 @@ void softReset(bool f_CurrTime_bl)
     pumpOff(i); // pump off
   }
   g_Timer_i = 0;
-  g_PrioMode_bl = false;
 }
 
 
@@ -413,7 +407,6 @@ void reset()
   g_Idle_bl = true;
   g_IdleTime_i = 0;
   g_IdleHeartBeat_bl = false;
-  g_PrioMode_bl = false;
 
   g_Log_st.Index_i = 0;
   for (int k = 0; k < g_LogSize_ic; ++k) {
@@ -554,38 +547,8 @@ void deactivateThresholds()
 //******************************************************************************************
 void readSensor()
 {
-  if (g_PrioMode_bl) {
-    for (int i=0; i < g_NumPlants_ic; ++i) {
-      g_Plants_pst[i].Sensor_i = analogRead(g_SensorPin_pic[i]);
-    }
-  } else {
-    for (int i=0; i < g_NumPlants_ic; ++i) {
-      const int newValue_i = analogReadMean(g_SensorPin_pic[i], 5, 10);
-      g_Plants_pst[i].Sensor_i = newValue_i;
-    }
-  }
-}
-
-
-//******************************************************************************************
-//  pump control
-//******************************************************************************************
-void prioModePumpControl()
-{ g_PrioMode_bl = false;
   for (int i=0; i < g_NumPlants_ic; ++i) {
-    bool TimerReset_bl = false;
-    if (modePumpOn == g_Plants_pst[i].Mode_enm) {
-      // ************* mode pump on **************
-      g_Plants_pst[i].Sensor_i = analogRead(g_SensorPin_pic[i]);
-      TimerReset_bl = pumpControlOnCheck(i);
-    }
-    
-    if (TimerReset_bl) {
-      g_Plants_pst[i].CurrTime_l = 0;
-    }
-    if (modePumpOn == g_Plants_pst[i].Mode_enm) {
-      g_PrioMode_bl = true;
-    }
+    g_Plants_pst[i].Sensor_i = analogReadMean(g_SensorPin_pic[i], 5, 10);
   }
 }
 
@@ -595,7 +558,6 @@ void prioModePumpControl()
 //******************************************************************************************
 void pumpControl()
 {
-  g_PrioMode_bl = false;
   for (int i=0; i < g_NumPlants_ic; ++i) {
     bool TimerReset_bl = false;
     if (modePumpReady == g_Plants_pst[i].Mode_enm) {
@@ -649,10 +611,6 @@ void pumpControl()
     
     if (TimerReset_bl) {
       g_Plants_pst[i].CurrTime_l = 0;
-    }
-
-    if (modePumpOn == g_Plants_pst[i].Mode_enm) {
-      g_PrioMode_bl = true;
     }
   }
 }
@@ -928,9 +886,6 @@ void printShortInfo()
 {
   terminalPrintPgm(g_PgmTime_pc);
   terminalPrintln(g_TotalTime_l);
-  if (g_PrioMode_bl) {
-    terminalPrintln("prio");
-  }
   for (int i=0; i < g_NumPlants_ic; ++i) {
     terminalPrintPgm(g_PgmSensor_pc);
     terminalPrint(i);
