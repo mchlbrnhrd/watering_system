@@ -19,19 +19,29 @@ function loadFile(filePathName) {
 //=========================================
 // main
 //=========================================
-const maxNumSensor = 4;
+const maxNumSensor = 8;
 var showData0 = document.getElementById("showData0");
 var showData1 = document.getElementById("showData1");
 var showData2 = document.getElementById("showData2");
 var showData3 = document.getElementById("showData3");
+var showData4 = document.getElementById("showData4");
+var showData5 = document.getElementById("showData5");
+var showData6 = document.getElementById("showData6");
+var showData7 = document.getElementById("showData7");
 showData0.checked=true;
 showData1.checked=true;
 showData2.checked=true;
 showData3.checked=true;
+showData4.checked=false;
+showData5.checked=false;
+showData6.checked=false;
+showData7.checked=false;
 var dataShow = document.getElementById("dataShow");
-var modeShow = document.getElementById("modeShow");
+var modeShow2 = document.getElementById("modeShow2");
+var modeShow3 = document.getElementById("modeShow3");
 dataShow.checked=true;
-modeShow.checked=true;
+modeShow2.checked=true;
+modeShow3.checked=false;
 showMainData();
 
 
@@ -40,12 +50,18 @@ function showMainData() {
   var showData1 = document.getElementById("showData1");
   var showData2 = document.getElementById("showData2");
   var showData3 = document.getElementById("showData3");
-  var showData = [showData0.checked, showData1.checked, showData2.checked, showData3.checked];
+  var showData4 = document.getElementById("showData4");
+  var showData5 = document.getElementById("showData5");
+  var showData6 = document.getElementById("showData6");
+  var showData7 = document.getElementById("showData7");
+  var showData = [showData0.checked, showData1.checked, showData2.checked, showData3.checked, showData4.checked, showData5.checked, showData6.checked, showData7.checked];
 
   var dataShowEl = document.getElementById("dataShow");
-  var modeShowEl = document.getElementById("modeShow");
+  var modeShow2El = document.getElementById("modeShow2");
+  var modeShow3El = document.getElementById("modeShow3");
   var dataShow=dataShowEl.checked;
-  var modeShow=modeShowEl.checked;
+  var modeShow2=modeShow2El.checked;
+  var modeShow3=modeShow3El.checked;
 
   var concatPrev0 = document.getElementById("concatPrev0");
   var concatPrev1 = document.getElementById("concatPrev1");
@@ -248,6 +264,18 @@ function showMainData() {
           case 3:
           ctx.strokeStyle = "#F0D000";
           break;
+          case 4:
+          ctx.strokeStyle = "#F000FF";
+          break;
+          case 5:
+          ctx.strokeStyle = "#F0D010";
+          break;
+          case 6:
+          ctx.strokeStyle = "#10D0F0";
+          break;
+          case 7:
+          ctx.strokeStyle = "#1010F0";
+          break;
           default:
           ctx.strokeStyle = "#000000";
         }
@@ -296,6 +324,18 @@ function showMainData() {
       break;
       case 3:
       ctx.strokeStyle = "#F0D000";
+      break;
+      case 4:
+      ctx.strokeStyle = "#F000FF";
+      break;
+      case 5:
+      ctx.strokeStyle = "#F0D010";
+      break;
+      case 6:
+      ctx.strokeStyle = "#10D0F0";
+      break;
+      case 7:
+      ctx.strokeStyle = "#1010F0";
       break;
       default:
       ctx.strokeStyle = "#000000";
@@ -359,10 +399,22 @@ function showMainData() {
       case 3:
       ctx.strokeStyle = "#F0D000";
       break;
+      case 4:
+      ctx.strokeStyle = "#F000FF";
+      break;
+      case 5:
+      ctx.strokeStyle = "#F0D010";
+      break;
+      case 6:
+      ctx.strokeStyle = "#10D0F0";
+      break;
+      case 7:
+      ctx.strokeStyle = "#1010F0";
+      break;
       default:
       ctx.strokeStyle = "#000000";
     }
-    if (showData[k_simple] && modeShow) {
+    if (showData[k_simple] && modeShow2) {
       for (var i = 0; i < dataLines.length; i++) {
         var curLine = dataLines[i];
         // example: time, modeA, valA, modeB, valB, modeC, valC,...
@@ -380,9 +432,41 @@ function showMainData() {
             if (curLineSplit.length >= numColumns) {
               var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*800;
               var mode=parseInt(curLineSplit[k_mode]);
-              if (mode > 1) {
+              if (mode == 2) {
                 ctx.save();
                 ctx.setLineDash([3,10]);
+                ctx.beginPath();
+                ctx.moveTo(x,0);
+                ctx.lineTo(x,500);
+                ctx.stroke();
+                ctx.restore();
+              }
+            }
+          }
+        }
+      }
+    }
+    if (showData[k_simple] && modeShow3) {
+      for (var i = 0; i < dataLines.length; i++) {
+        var curLine = dataLines[i];
+        // example: time, modeA, valA, modeB, valB, modeC, valC,...
+        // 3600,1,378,1,453,1,598,1,297,1,277,1,271,1,278,1,281
+        if (curLine != "") {
+          var curLineSplit = curLine.split(",");
+          // ignore invalid data sets (at least one entry is 0 is invalid)
+          cancel=false;
+          for (var j=0; j < curLineSplit.length; j+=2) {
+            if (0 == curLineSplit[j]) {
+              cancel=true;
+            }
+          }
+          if (!cancel) {
+            if (curLineSplit.length >= numColumns) {
+              var x=(parseInt(curLineSplit[0])-min_x)/(max_x-min_x)*800;
+              var mode=parseInt(curLineSplit[k_mode]);
+              if (mode > 2) {
+                ctx.save();
+                ctx.setLineDash([5,15]);
                 ctx.beginPath();
                 ctx.moveTo(x,0);
                 ctx.lineTo(x,500);
@@ -519,6 +603,18 @@ function showSelData() {
       break;
       case 3:
       ctx.strokeStyle = "#F0D000";
+      break;
+      case 4:
+      ctx.strokeStyle = "#F000FF";
+      break;
+      case 5:
+      ctx.strokeStyle = "#F0D010";
+      break;
+      case 6:
+      ctx.strokeStyle = "#10D0F0";
+      break;
+      case 7:
+      ctx.strokeStyle = "#1010F0";
       break;
       default:
       ctx.strokeStyle = "#000000";
