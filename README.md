@@ -5,7 +5,7 @@ For this self watering system you need an Arduino microcontroller, water pump, r
 
 Using Arduino Yún: Monitoring moisture is done and those log data are stored together with settings on a SD card. Those data (settings like threshold values and log files) will be pushed to a user defined server. An HTML file evaluates the log file/monitoring and shows graphically the moisture by remote on mobile phone or notebook.
 
-![watering system](doc/watering_system_small.jpg)
+[![watering system](doc/watering_system_small.jpg)](https://youtu.be/63FDw_dUG_s)
 
 This software supports:
 * start pump when moisture of soil is too low
@@ -22,6 +22,9 @@ This software supports:
   - save log files and settings on SD card
   - push files to a server
   - evaluate log files and show graphically from remote
+
+# Demonstration
+https://youtu.be/63FDw_dUG_s
 
 # Hardware Setup
 Connect digital outputs of arduino (microcontroller) with relay module inputs. Connect analog inputs of arduino with capacitive soil moisture sensors. Connect pumps with relay module switches and power supply. Make sure to use correct voltages for arduino board and pump.
