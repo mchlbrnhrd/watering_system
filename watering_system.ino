@@ -30,21 +30,21 @@ const int g_NumPlants_ic = 8;
 //                  nr. 7:          relay output only
 
 // version to print on console
-const char g_PgmVersion_pc[] PROGMEM = {"Version: 2021.08.11"};
+const char g_PgmVersion_pc[] PROGMEM = {"Version: 2022.05.30"};
 
 // pin connection of sensor and pump (relais module) to arduino board
 const int g_SensorPin_pic[g_NumPlants_ic] = {A0, A1, A2, A4, A3, A3, A3, A3}; // A3 not used here
 const int g_PumpPin_pic[g_NumPlants_ic] = {10,11, 12, 4,    5, 6, 8, 9};
 
 const int g_LogSize_ic = 20; // number of log entries
-const long g_LogInterval_lc = 60L*60L; // log interval 1 h
+const long g_LogInterval_lc = 30L*60L; // log interval 0.5 h
 const int g_IdleTimeSeconds_ic = 120; // stay for IdleTimeSeconds in idle mode: usefull when setup watering system first time; avoid starting pump automatically
 // after time out normal watering system mode.a I.e. after (unwanted) power cycle system will continue but it is possible to stop for calibration
 
 // store text in PROGMEM
 const char g_PgmWatering_pc[] PROGMEM = {"by MB"}; //{"Watering system by Michael Bernhard. Type 'h' for help."};
-const char g_PgmHelp0_pc[] PROGMEM = {"hvdsritm"}; //: help; v: version; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode;"};
-const char g_PgmHelp1_pc[] PROGMEM = {"lpawkbc"};// read log; p: add log entry and push to server; a: auto calibration; w: write/save threshold values; k: fast pump check; b: break (deactivate thresholds); c: cancel/continue"};
+const char g_PgmHelp0_pc[] PROGMEM = {"h: help; v: version; d: debug; s: soft reset; r: reset; i: short info; t: terminal; m: manual mode;"};
+const char g_PgmHelp1_pc[] PROGMEM = {"l: read log; p: add log entry and push to server; a: auto calibration; w: write/save threshold values; k: fast pump check; b: break (deactivate thresholds); c: cancel/continue"};
 const char g_PgmInfo_pc[] PROGMEM = {"Info"};
 const char g_PgmSensor_pc[] PROGMEM = {"Sensor "};
 const char g_PgmTime_pc[] PROGMEM = {"Time: "};
@@ -75,8 +75,8 @@ const char g_PgmM2_pc[] PROGMEM = {"mode pump on   "};
 const char g_PgmM3_pc[] PROGMEM = {"mode pump off  "};
 const char g_PgmM4_pc[] PROGMEM = {"mode pump error"};
 
-const char g_PgmErrR1_pc[] PROGMEM = {": Err R1"}; // Switch off pump due of timeout. Check sensor. "};
-const char g_PgmErrR6_pc[] PROGMEM = {": Err R6"}; // Force pump due of timeout T4. Check sensor. "};
+const char g_PgmErrR1_pc[] PROGMEM = {": Err R1 "}; // Switch off pump due of timeout. Check sensor. "};
+const char g_PgmErrR6_pc[] PROGMEM = {": Err R6 "}; // Force pump due of timeout T4. Check sensor. "};
 const char g_PgmInfoR7_pc[] PROGMEM = {": Info: Leave Error state. R7"};
 const char g_PgmDebugR2_pc[] PROGMEM = {": pump on (thres) R2"};
 const char g_PgmDebugR3_pc[] PROGMEM = {": pump off (thres) R3"};
